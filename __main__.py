@@ -74,5 +74,25 @@ def run_study(**kwargs):
     runner(run_study=True, **kwargs)
 
 
+@run.command()
+@click.option(f'--{opt.url}',
+              default=None,
+              help='URL to the data source. '
+                   'If it is null, --archive option is used as a data source. '
+                   'If --archive is set, it would be a destination for the downloaded data. '
+                   'Either --url or --archive or both must be defined.')
+@click.option(f'--{opt.archive}',
+              default=None,
+              help='Data archive file name. '
+                   'If URL is set, this option is a destination for the downloaded data. '
+                   'If it is null, downloaded data file will have default name with a timestamp. '
+                   'Either --url or --archive or both must be defined.')
+@click.option(f'--{opt.format}',
+              required=True,
+              help='Data source format. Possible values: TNX (TriNetX)')
+def convert(**kwargs):
+    runner(convert=True, **kwargs)
+
+
 if __name__ == '__main__':
     run()

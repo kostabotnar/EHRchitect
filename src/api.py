@@ -2,6 +2,7 @@ class Command:
     create_new_db = 'createdb'
     load_data = 'load'
     run_study = "run_study"
+    convert = 'convert'
 
 
 class Argument:
@@ -14,6 +15,9 @@ class Option:
     archive = 'archive'
     local_access = 'local_access'
     set_index = 'set_index'
+    format = 'format'
+
+    format_values = {'TNX'}  # OMOP, MIMICIV
 
 
 def validate(**kwargs) -> bool:
@@ -23,6 +27,8 @@ def validate(**kwargs) -> bool:
         return validate_create_db(**kwargs)
     if Command.run_study in kwargs:
         return validate_run_study(**kwargs)
+    if Command.convert in kwargs:
+        return validate_convert_data(**kwargs)
     return False
 
 
@@ -53,6 +59,26 @@ def validate_run_study(**kwargs) -> bool:
         )
     if any([s[-4:] != 'json' for s in kwargs[Argument.study]]):
         raise ValueError(
-            f'Value Error: All study files should have JSON format'
+            f'Value Error: Invalid {Argument.study} value. All study files should have JSON format'
+        )
+    return True
+
+
+def validate_convert_data(**kwargs) -> bool:
+    if kwargs[Option.format] not in Option.format_values:
+        raise ValueError(
+            f'Value Error: Format must have one of the following values: "{Option.format_values}"'
+        )
+    if kwargs[Option.url] is not None and kwargs[Option.url].strip() == "":
+        raise ValueError(
+            f'Value Error: Invalid --{Option.url} value: "{kwargs[Option.url]}"'
+        )
+    if kwargs[Option.archive] is not None and kwargs[Option.archive].strip() == "":
+        raise ValueError(
+            f'Value Error: Invalid --{Option.archive} value: "{kwargs[Option.archive]}"'
+        )
+    if kwargs[Option.url] is None and kwargs[Option.archive] is None:
+        raise ValueError(
+            f'Value Error: No data source was defined. Either {Option.url} or {Option.archive} must have a value.'
         )
     return True
