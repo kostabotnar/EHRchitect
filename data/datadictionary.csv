@@ -1,0 +1,50 @@
+﻿File Name,Table Name,Column Name,Data Type,Length,Nullable,Primary Key,Index,Foreign Key,enumValues,Description
+diagnosis.csv,diagnosis,patient_id,VARCHAR,200,No,No,Yes,patient_id|patient,,The unique ID for the patient (de- identified).
+diagnosis.csv,diagnosis,encounter_id,VARCHAR,200,Yes,No,No,,,The unique ID for the encounter (de- identified).
+diagnosis.csv,diagnosis,code_system,VARCHAR,20,No,No,No,,,The name of the code system in which this diagnosis is coded.
+diagnosis.csv,diagnosis,code,VARCHAR,20,No,No,Yes,,,The diagnosis code.
+diagnosis.csv,diagnosis,date,DATETIME,,No,No,Yes,,,The date the diagnosis was recorded.
+encounter.csv,encounter,encounter_id,VARCHAR,200,No,Yes,No,,,The unique ID for the encounter (de- identified).
+encounter.csv,encounter,patient_id,VARCHAR,200,No,No,Yes,patient_id|patient,,The unique ID for the patient (de-identified).
+encounter.csv,encounter,start_date,DATETIME,,No,No,Yes,,,The date the encounter began.
+encounter.csv,encounter,end_date,DATETIME,,Yes,No,Yes,,,The date the encounter ended.
+encounter.csv,encounter,type,VARCHAR,10,No,No,No,,"AMB,EMER,HH,IMP,NONAC,OBSENC,PRENC,SS,VR","The care setting of the encounter. Possible values are Ambulatory (AMB), Emergency (EMER),  Home Health (HH), Inpatient Encounter (IMP), Inpatient Non-acute (NONAC), Observation (OBSENC), Pre-admission (PRENC), Short Stay (SS), Virtual (VR). These values are based on HL7 v3 Value Set ActEncounterCode."
+lab_result.csv,lab_result,patient_id,VARCHAR,200,No,No,Yes,patient_id|patient,,The unique ID for the patient (de- identified).
+lab_result.csv,lab_result,encounter_id,VARCHAR,200,No,No,No,,,The unique ID for the encounter (de- identified).
+lab_result.csv,lab_result,code_system,VARCHAR,20,No,No,No,,,The name of the code system in which this lab observation is coded.
+lab_result.csv,lab_result,code,VARCHAR,20,No,No,Yes,,,The code representing the lab test.
+lab_result.csv,lab_result,date,DATETIME,,No,No,Yes,,,The date the test result was recorded.
+lab_result.csv,lab_result,num_value,DECIMAL,"36,18",Yes,No,No,,,The lab result for numeric results.
+lab_result.csv,lab_result,text_value,VARCHAR,10,Yes,No,No,,"Positive,Negative,Unknown",The lab result for text results.
+lab_result.csv,lab_result,units_of_measure,VARCHAR,40,No,No,No,,,The lab result units of measure for numeric results.
+medication.csv,medication,patient_id,VARCHAR,200,No,No,Yes,patient_id|patient,,The unique ID for the patient (de-identified).
+medication.csv,medication,encounter_id,VARCHAR,200,No,No,No,,,The unique ID for the encounter (de-identified).
+medication.csv,medication,code_system,VARCHAR,20,No,No,No,,,The name of the code system in which this medication is coded.
+medication.csv,medication,code,VARCHAR,20,No,No,Yes,,,"The medication ingredient code, corresponding to RxNorm concepts of the type IN."
+medication.csv,medication,date,DATETIME,,No,No,Yes,,,"The date the medication order, prescription, or administration was recorded."
+medication.csv,medication,route,VARCHAR,200,No,No,No,,"Drug implant, Inhalant, Injectable, Intraperitoneal, Nasal, Ophthalmic, Oral, Otic, Rectal, Topical, Urethral, Vaginal, Unknown","The route of administration. Possible values are Drug implant, Inhalant, Injectable, Intraperitoneal, Nasal, Ophthalmic, Oral, Otic, Rectal, Topical, Urethral, Vaginal, Unknown."
+medication.csv,medication,brand,VARCHAR,200,No,No,No,,,The medication brand.
+medication.csv,medication,strength,VARCHAR,200,No,No,No,,,The medication strength.
+patient.csv,patient,patient_id,VARCHAR,200,No,Yes,Yes,,,The unique ID for the patient (de-identified)
+patient.csv,patient,sex,VARCHAR,10,No,No,No,,"M,F,Unknown","The biological sex of the patient. Possible values are M, F, Unknown."
+patient.csv,patient,race,VARCHAR,100,No,No,No,,"American Indian or Alaska Native,Asian,Black or African American,Native Hawaiian or Other Pacific Islander,White,Unknown","The race of the patient. Possible values are American Indian or Alaska Native, Asian, Black or African American, Native Hawaiian or Other Pacific Islander, White, Unknown."
+patient.csv,patient,ethnicity,VARCHAR,100,No,No,No,,"Hispanic or Latino,Not Hispanic or Latino,Unknown","The ethnicity (cultural background) of the patient. Possible values are Hispanic or Latino, Not Hispanic or Latino, Unknown."
+patient.csv,patient,marital_status,VARCHAR,10,No,No,No,,"Single,Married,Unknown",Marital status of the patient.
+patient.csv,patient,date_of_birth,DATE,,Yes,No,No,,,"The birth year of the patient. If only year is presented, the date will be 01/01/year"
+patient.csv,patient,date_of_death,DATE,,Yes,No,Yes,,,"The date of a patient’s death. If some data is missing, the last day of the last month of the year will be recorded"
+procedures.csv,procedures,patient_id,VARCHAR,200,No,No,Yes,patient_id|patient,,The unique ID for the patient (de-identified).
+procedures.csv,procedures,encounter_id,VARCHAR,200,No,No,No,,,The unique ID for the encounter (de- identified).
+procedures.csv,procedures,code_system,VARCHAR,20,No,No,No,,,The name of the code system in which this procedure is coded.
+procedures.csv,procedures,code,VARCHAR,20,No,No,Yes,,,The procedure code.
+procedures.csv,procedures,date,DATETIME,,No,No,Yes,,,The date the procedure was recorded.
+code_description.csv,code_description,code_system,VARCHAR,20,No,No,No,,,The name of the code system in which the data element is coded.
+code_description.csv,code_description,code,VARCHAR,20,No,No,Yes,,,The code for the data element.
+code_description.csv,code_description,code_description,VARCHAR,1500,No,No,No,,,The textual description of the data element.
+vital_sign.csv,vital_sign,patient_id,VARCHAR,200,No,No,Yes,patient_id|patient,,The unique ID for the patient (de- identified).
+vital_sign.csv,vital_sign,encounter_id,VARCHAR,200,No,No,No,,,The unique ID for the encounter (de- identified).
+vital_sign.csv,vital_sign,code_system,VARCHAR,20,No,No,No,,,The name of the code system in which this vital sign is coded.
+vital_sign.csv,vital_sign,code,VARCHAR,20,No,No,Yes,,,The code representing the vital sign.
+vital_sign.csv,vital_sign,date,DATETIME,,No,No,Yes,,,The date the vital sign was recorded.
+vital_sign.csv,vital_sign,num_value,DECIMAL,"36,18",Yes,No,No,,,The value of this vital sign.
+vital_sign.csv,vital_sign,text_value,VARCHAR,1000,Yes,No,No,,,The value for text results.
+vital_sign.csv,vital_sign,units_of_measure,VARCHAR,40,No,No,No,,,The lab result units of measure for numeric results.
