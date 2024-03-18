@@ -1,12 +1,32 @@
 import click
-from src.api import Argument as arg, Option as opt, validate
+
+from src import Application
+from src.api import Argument as arg, Option as opt, validate, Command
 
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 
 
-def runner(**kwargs):
+def runner(command: str, **kwargs):
     try:
-        validate(**kwargs)
+        validate(command, **kwargs)
+        if command == Command.create_new_db:
+            Application.create_db(database=kwargs[arg.db_name],
+                                  url=kwargs[opt.url],
+                                  archive=kwargs[opt.archive],
+                                  local_access=kwargs[opt.local_access],
+                                  set_index=kwargs[opt.set_index],
+                                  drop_csv=kwargs[opt.drop_csv],
+                                  new_db=True)
+        elif command == Command.append_data:
+            Application.create_db(database=kwargs[arg.db_name],
+                                  url=kwargs[opt.url],
+                                  archive=kwargs[opt.archive],
+                                  local_access=kwargs[opt.local_access],
+                                  set_index=kwargs[opt.set_index],
+                                  drop_csv=kwargs[opt.drop_csv],
+                                  new_db=False)
+        elif command == Command.run_study:
+            Application.run_study()
     except ValueError as e:
         print(e)
 
@@ -38,8 +58,11 @@ def run():
               default=True,
               help='If FALSE, than table indexes will not be created. '
                    'It will speed up data upload but increase data search time. Default value is TRUE')
+@click.option(f'--{opt.drop_csv}', default=True,
+              help='If TRUE, then .csv files with the common data model will be deleted after data uploaded to the '
+                   'database.')
 def createdb(**kwargs):
-    runner(createdb=True, **kwargs)
+    runner(command=Command.create_new_db, **kwargs)
 
 
 @run.command()
@@ -63,35 +86,18 @@ def createdb(**kwargs):
               default=True,
               help='If FALSE, than table indexes will not be created. '
                    'It will speed up data upload but increase data search time. Default value is TRUE')
-def load(**kwargs):
-    runner(load=True, **kwargs)
+@click.option(f'--{opt.drop_csv}', default=True,
+              help='If TRUE, then .csv files with the common data model will be deleted after data uploaded to the '
+                   'database.')
+def append(**kwargs):
+    runner(command=Command.append_data, **kwargs)
 
 
 @run.command()
 @click.argument(arg.db_name)
 @click.argument(arg.study, nargs=-1)
 def run_study(**kwargs):
-    runner(run_study=True, **kwargs)
-
-
-@run.command()
-@click.option(f'--{opt.url}',
-              default=None,
-              help='URL to the data source. '
-                   'If it is null, --archive option is used as a data source. '
-                   'If --archive is set, it would be a destination for the downloaded data. '
-                   'Either --url or --archive or both must be defined.')
-@click.option(f'--{opt.archive}',
-              default=None,
-              help='Data archive file name. '
-                   'If URL is set, this option is a destination for the downloaded data. '
-                   'If it is null, downloaded data file will have default name with a timestamp. '
-                   'Either --url or --archive or both must be defined.')
-@click.option(f'--{opt.format}',
-              required=True,
-              help='Data source format. Possible values: TNX (TriNetX)')
-def convert(**kwargs):
-    runner(convert=True, **kwargs)
+    runner(command=Command.run_study, **kwargs)
 
 
 if __name__ == '__main__':

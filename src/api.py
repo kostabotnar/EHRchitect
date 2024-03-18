@@ -1,8 +1,7 @@
 class Command:
     create_new_db = 'createdb'
-    load_data = 'load'
+    append_data = 'append'
     run_study = "run_study"
-    convert = 'convert'
 
 
 class Argument:
@@ -14,36 +13,35 @@ class Option:
     url = 'url'
     archive = 'archive'
     local_access = 'local_access'
+    create_new_db = 'create_new_db'
     set_index = 'set_index'
-    format = 'format'
+    drop_csv = 'drop_csv'
 
     format_values = {'TNX'}  # OMOP, MIMICIV
 
 
-def validate(**kwargs) -> bool:
-    if Command.create_new_db in kwargs:
-        return validate_create_db(**kwargs)
-    if Command.load_data in kwargs:
-        return validate_create_db(**kwargs)
-    if Command.run_study in kwargs:
+def validate(command: str, **kwargs) -> bool:
+    if command == Command.create_new_db:
+        return validate_data_import(**kwargs)
+    if command == Command.append_data:
+        return validate_data_import(**kwargs)
+    if command == Command.run_study:
         return validate_run_study(**kwargs)
-    if Command.convert in kwargs:
-        return validate_convert_data(**kwargs)
     return False
 
 
-def validate_create_db(**kwargs) -> bool:
+def validate_data_import(**kwargs) -> bool:
+    valid_url = kwargs[Option.url] is not None and len(kwargs[Option.url].strip()) > 0
+    valid_archive = kwargs[Option.archive] is not None and len(kwargs[Option.archive].strip()) > 0
     if kwargs[Argument.db_name] is not None and kwargs[Argument.db_name].strip() == "":
         raise ValueError(
             f'Value Error: Invalid {Argument.db_name} value: "{kwargs[Argument.db_name]}"'
         )
-    if kwargs[Option.url] is not None and kwargs[Option.url].strip() == "":
+    if not valid_url and not valid_archive:
         raise ValueError(
-            f'Value Error: Invalid --{Option.url} value: "{kwargs[Option.url]}"'
-        )
-    if kwargs[Option.archive] is not None and kwargs[Option.archive].strip() == "":
-        raise ValueError(
-            f'Value Error: Invalid --{Option.archive} value: "{kwargs[Option.archive]}"'
+            f'Value Error: either {Option.url} or {Option.archive} should be set. '
+            f'{Option.url} value: "{kwargs[Option.url]}. "'
+            f'{Option.archive} value: "{kwargs[Option.archive]}."'
         )
     return True
 
@@ -60,25 +58,5 @@ def validate_run_study(**kwargs) -> bool:
     if any([s[-4:] != 'json' for s in kwargs[Argument.study]]):
         raise ValueError(
             f'Value Error: Invalid {Argument.study} value. All study files should have JSON format'
-        )
-    return True
-
-
-def validate_convert_data(**kwargs) -> bool:
-    if kwargs[Option.format] not in Option.format_values:
-        raise ValueError(
-            f'Value Error: Format must have one of the following values: "{Option.format_values}"'
-        )
-    if kwargs[Option.url] is not None and kwargs[Option.url].strip() == "":
-        raise ValueError(
-            f'Value Error: Invalid --{Option.url} value: "{kwargs[Option.url]}"'
-        )
-    if kwargs[Option.archive] is not None and kwargs[Option.archive].strip() == "":
-        raise ValueError(
-            f'Value Error: Invalid --{Option.archive} value: "{kwargs[Option.archive]}"'
-        )
-    if kwargs[Option.url] is None and kwargs[Option.archive] is None:
-        raise ValueError(
-            f'Value Error: No data source was defined. Either {Option.url} or {Option.archive} must have a value.'
         )
     return True
