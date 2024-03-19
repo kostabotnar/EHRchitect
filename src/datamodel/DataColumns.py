@@ -45,3 +45,20 @@ class CommonColumns:
     date_of_birth = "date_of_birth"
     date_of_death = "date_of_death"
     code_description = "code_description"
+    icd9_code = 'icd9_code'
+    icd10_code = 'icd10_code'
+    description = 'description'
+
+    date_columns = ["date", "start_date", "end_date", "date_of_birth", "date_of_death"]
+
+
+class CommonTables:
+    patient = "patient"
+    encounter = "encounter"
+    diagnosis = "diagnosis"
+    medication = "medication"
+    lab_result = "lab_result"
+    procedures = "procedures"
+    vital_sign = "vital_sign"
+    code_description = "code_description"
+    icd9_map_icd10 = "icd9_map_icd10"

@@ -1,7 +1,10 @@
 import logging
+from typing import Optional
 
+from src.db import SqlUtil
 from src.db.SqlDataElement import ForeignKey
 from src.util.Error import QueryBuilderError
+from src.datamodel.DataColumns import CommonColumns as cc, CommonTables as ct
 
 logger = logging.getLogger('QueryBuilder')
 
@@ -77,24 +80,126 @@ def get_distinct_values(db, table, column, column_is_index=False):
 
 def get_med_drug_data(db, table, columns, codes):
     columns_str = ','.join(columns)
-    codes_str = in_expression('code', codes)
+    codes_str = SqlUtil.in_expression('code', codes)
     return f'select {columns_str} from {db}.{table} where {codes_str};'
 
 
 def get_med_ingredients_by_unique_id(db, table, columns, unique_ids):
     columns_str = ','.join(columns)
-    unique_ids_str = in_expression("unique_id", unique_ids)
+    unique_ids_str = SqlUtil.in_expression("unique_id", unique_ids)
     return f'select {columns_str} from {db}.{table} where {unique_ids_str};'
 
 
-def in_expression(column, values):
-    l = [f"'{x}'" for x in values]
-    s = ','.join(l)
-    return f'{column} in ({s})'
-
-
-def get_codes_description(db, table, columns, codes_and_system):
-    columns_str = ','.join(columns)
+def get_codes_description(codes_and_system: list):
     codes_and_system_str = [f"(code='{c}' and code_system='{s}')" for c, s in codes_and_system]
     codes_and_system_str = ' or '.join(codes_and_system_str)
-    return f'select {columns_str} from {db}.{table} where {codes_and_system_str}';
+    return f'select * from {ct.code_description} where {codes_and_system_str};'
+
+
+def get_subcodes(codes, table_name):
+    like_expr = SqlUtil.like_expression(cc.code, codes)
+    return f"SELECT {cc.code} FROM {table_name} " \
+           f"WHERE {like_expr}"
+
+
+def get_icd9_icd10_map(codes, code_search_column):
+    list_expr = SqlUtil.in_expression(code_search_column, codes)
+    return f'select {cc.icd9_code}, {cc.icd10_code} ' \
+           f'from {ct.icd9_map_icd10} ' \
+           f'where {list_expr}'
+
+
+def request_dead_patients(patients_info: Optional[list] = None, columns: Optional[list] = None) -> str:
+    columns = SqlUtil.selected_columns_expr(columns)
+    # date-patient condition
+    date_patient_condition = compose_date_patient_condition(patients_info, cc.date_of_death, ct.patient)
+
+    # add date condition
+    where = f'where not isnull({cc.date_of_death})'
+    where += f' and ({date_patient_condition})' if date_patient_condition else ''
+    return f'select {columns} ' \
+           f'from {ct.patient} ' \
+           f'{where}'
+
+
+def get_patient_info(patients, columns=None):
+    in_expression = SqlUtil.in_expression(cc.patient_id, patients)
+    columns = SqlUtil.selected_columns_expr(columns)
+    return f'select {columns} from {ct.patient} where {in_expression}'
+
+
+def compose_date_patient_condition(patients_info: list, date_column: str, table: str) -> Optional[str]:
+    if not patients_info:
+        return None
+    patient_id_col = f'{table}.{cc.patient_id}'
+    date_col = f'{table}.{date_column}'
+    res = []
+    for min_date, max_date, patients in patients_info:
+        condition = [SqlUtil.in_expression(patient_id_col, patients)] if patients else []
+        if min_date is not None:
+            condition.append(f"{date_col} >= '{min_date}'")
+        if max_date is not None:
+            condition.append(f"{date_col} <= '{max_date}'")
+        if condition:
+            condition = '(' + ' AND '.join(condition) + ')'
+            res.append(condition)
+    return ' OR '.join(res) if res else None
+
+
+def get_code_info(codes: list, table: str, columns: list, include_subcodes: bool = False,
+                  patients_info: Optional[list] = None, first_match=False) -> str:
+    # select column expression
+    request_columns = []
+    for c in columns:
+        if c == cc.type:
+            c = f'{ct.encounter}.{cc.type}'
+        else:
+            c = f'{table}.{c}'
+        request_columns.append(c)
+
+        # group by expression
+    if first_match and cc.date in columns:
+        request_date_column = f'{table}.{cc.date}'
+        request_columns.remove(request_date_column)
+        request_columns.append(f'min({request_date_column}) as {cc.date}')
+        group_by_expr = f'group by {",".join(request_columns[:-1])}'
+    else:
+        group_by_expr = ''
+    columns_expr = SqlUtil.selected_columns_expr(request_columns)
+
+    # from expression
+    if cc.type in columns:
+        from_expr = f'{table} left join {ct.encounter} ' \
+                    f'on {table}.{cc.encounter_id} = {ct.encounter}.{cc.encounter_id}'
+    else:
+        from_expr = f'{table}'
+
+    # date-patient condition
+    date_patient_condition = compose_date_patient_condition(patients_info, cc.date, table)
+
+    # codes condition
+    codes_condition = None
+    if codes:
+        request_code_column = f'{table}.{cc.code}'
+        codes_condition = SqlUtil.like_expression(request_code_column, codes) if include_subcodes else \
+            SqlUtil.in_expression(request_code_column, codes)
+
+    # request body
+    cond_list = [codes_condition, date_patient_condition]
+    where = ' and '.join([f"({x})" for x in cond_list if x is not None])
+    where_expr = f'where {where}' if len(where) > 0 else ''
+
+    request = f"select {columns_expr} from {from_expr} {where_expr} {group_by_expr}"
+
+    return request
+
+
+def request_patient_codes_to_date(date_patient_dict: dict, table_name: str, columns: list, date_column: str) -> str:
+    columns_expr = SqlUtil.selected_columns_expr(columns)
+    where_expr = [f'({date_column} <= {d} and {SqlUtil.in_expression(cc.patient_id, p)})'
+                  for d, p in date_patient_dict.items()]
+    where_expr = ' OR '.join(where_expr)
+    if len(where_expr) > 0:
+        where_expr = f'where {where_expr}'
+    request = f"select {columns_expr} from {table_name} {where_expr}"
+    return request
