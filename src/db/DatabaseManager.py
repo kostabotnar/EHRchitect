@@ -27,7 +27,7 @@ class DatabaseManager:
     def __create_sql_engine(self):
         self.logger.debug('Create SQL engine')
         db_port = self.__app_config.localport if self.__local_access else self.tunnel.local_bind_port
-        url = f'mysql+pymysql://{self.__app_config.database_username}:{self.__app_config.database_password}' \
+        url = f'mysql+pymysql://{self.__app_config.mysql_username}:{self.__app_config.mysql_password}' \
               f'@{self.__app_config.localhost}:{db_port}/{self.database_name}'
         print(url)
         self.__sql_engine = create_engine(url, echo=False, pool_pre_ping=True)
@@ -69,8 +69,8 @@ class DatabaseManager:
         try:
             conn = pymysql.connect(
                 host=self.__app_config.localhost,
-                user=self.__app_config.database_username,
-                passwd=self.__app_config.database_password,
+                user=self.__app_config.mysql_username,
+                passwd=self.__app_config.mysql_password,
                 db=self.database_name,
                 port=self.__app_config.localport if self.__local_access else self.tunnel.local_bind_port,
                 local_infile=local_infile

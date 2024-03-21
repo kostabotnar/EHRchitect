@@ -16,31 +16,32 @@ logging.config.fileConfig(fp.log_config_file)
 logger = logging.getLogger('Main')
 
 
-def create_db(database: str, url: str, archive: str, local_access: bool, new_db: bool, set_index: bool, drop_csv: bool):
+def create_db(db_name: str, url: str, archive: str, local_access: bool, new_db: bool, set_index: bool, drop_csv: bool):
     logger.debug('======Start======')
     download_dataset(url, archive)
     data_path = ConvertDataModel().execute(archive, 'tnx')
     tables_data = ParseDataDictionary().execute(data_path)
 
     app_config = init_app_config()
-    db_manager = DatabaseManager(app_config, db_name=database, local_access=local_access)
+    db_manager = DatabaseManager(app_config, db_name=db_name, local_access=local_access)
 
     # crete MySQL DB
     code_map_table = None
     if new_db:
         table_creator = CreateSqlTablesStructure(db_manager)
-        tables_data = table_creator.execute(database, tables_data)
-        code_map_table = table_creator.create_code_map_table(database, fp.code_map_table_file)
+        tables_data = table_creator.execute(db_name, tables_data)
+        code_map_table = table_creator.create_code_map_table(db_name, fp.code_map_table_file)
 
     # upload data to the DB
     if code_map_table is not None:
         ImportDataToDB.import_code_mapping_data(db_manager, code_map_table)
-    ImportDataToDB.execute(app_config, local_access, database, tables_data, archive, set_index)
+    ImportDataToDB.execute(app_config, local_access, db_name, tables_data, archive, set_index)
     # remove temp data files
     if drop_csv:
         logger.debug(f'Delete data model csv files {data_path}')
         shutil.rmtree(data_path)
-
+    # add created database into the config
+    update_config(app_config, db_name)
     logger.debug('======Finish======')
 
 
@@ -54,6 +55,14 @@ def init_app_config():
         lines = f.readlines()
     data = ''.join(lines)
     return AppConfig.from_json(data)
+
+
+def update_config(app_config: AppConfig, db_name: str):
+    logger.debug(f'Update application config with database {db_name}')
+    app_config.add_database(db_name)
+    app_config_json = app_config.to_json()
+    with open(fp.app_config_file, 'w') as f:
+        f.write(app_config_json)
 
 
 def download_dataset(url: str, archive: str, default_name: str = None):

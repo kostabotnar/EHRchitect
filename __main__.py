@@ -10,7 +10,7 @@ def runner(command: str, **kwargs):
     try:
         validate(command, **kwargs)
         if command == Command.create_new_db:
-            Application.create_db(database=kwargs[arg.db_name],
+            Application.create_db(db_name=kwargs[arg.db_name],
                                   url=kwargs[opt.url],
                                   archive=kwargs[opt.archive],
                                   local_access=kwargs[opt.local_access],
@@ -18,7 +18,7 @@ def runner(command: str, **kwargs):
                                   drop_csv=kwargs[opt.drop_csv],
                                   new_db=True)
         elif command == Command.append_data:
-            Application.create_db(database=kwargs[arg.db_name],
+            Application.create_db(db_name=kwargs[arg.db_name],
                                   url=kwargs[opt.url],
                                   archive=kwargs[opt.archive],
                                   local_access=kwargs[opt.local_access],
