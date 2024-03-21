@@ -6,10 +6,5 @@
   "mysql_password": "mysql_password",
   "localhost": "127.0.0.1",
   "localport": 3306,
-  "db_instances": [
-    {
-      "instance_name": "any name for EHRchitect",
-      "db_name": "MySql database name"
-    }
-  ]
+  "db_instances": ["MySql database name for study 1", "MySql database name for study 1"]
 }
