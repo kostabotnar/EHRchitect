@@ -15,7 +15,7 @@ from src.db.SqlDataElement import SqlTable
 
 class DatabaseManager:
 
-    def __init__(self, app_config: AppConfig, db_name: Optional[str] = None, local_access=False):
+    def __init__(self, app_config: AppConfig, db_name: Optional[str] = None, local_access=True):
         self.logger = logging.getLogger(self.__class__.__name__)
         self.database_name = db_name
         self.__app_config = app_config

@@ -26,7 +26,8 @@ def runner(command: str, **kwargs):
                                   drop_csv=kwargs[opt.drop_csv],
                                   new_db=False)
         elif command == Command.run_study:
-            Application.run_study(db_name=kwargs[arg.db_name], study_list=kwargs[arg.study], local_db=False)
+            Application.run_study(db_name=kwargs[arg.db_name], study_list=kwargs[arg.study],
+                                  local_db=kwargs[opt.local_access])
     except ValueError as e:
         print(e)
 
@@ -96,6 +97,10 @@ def append(**kwargs):
 @run.command()
 @click.argument(arg.db_name)
 @click.argument(arg.study, nargs=-1)
+@click.option(f'--{opt.local_access}',
+              default=True,
+              help='If False, then SSH connection will be used. '
+                   'Otherwise, the local host DB connection will be establish')
 def run_study(**kwargs):
     runner(command=Command.run_study, **kwargs)
 
