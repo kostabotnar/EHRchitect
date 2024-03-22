@@ -238,7 +238,7 @@ class DatabaseManager:
 
         query = QB.get_code_info(codes, table, columns, include_subcodes, patients_info, first_match)
         result = self.__do_request_df(query)
-        return result.dropna() if result is not None else None
+        return result.dropna().drop_duplicates() if result is not None else None
 
     def request_patient_codes_to_date(
             self, date_patient_dict: dict, table_name: str, columns: list, date_column: str

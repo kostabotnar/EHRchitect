@@ -133,7 +133,7 @@ def get_code_info(codes: list, table: str, columns: list, include_subcodes: bool
             c = f'{table}.{c}'
         request_columns.append(c)
 
-        # group by expression
+    # group by expression
     if first_match and cc.date in columns:
         request_date_column = f'{table}.{cc.date}'
         request_columns.remove(request_date_column)

@@ -121,12 +121,13 @@ class BaseDbRepository(metaclass=ABCMeta):
         )
         if icd9_df is None:
             return None
-        # convert ICD9 to corresponded ICD10
-        df = icd9_df.merge(icd10_to_icd9_map_df, 'inner', left_on=cc.code, right_on=cc.icd9_code)
-        df[cc.code] = df[cc.icd10_code]
-        df = df.drop(columns=[cc.icd9_code, cc.icd10_code]).drop_duplicates()
+        if cc.code in icd9_df.columns:
+            # convert ICD9 to corresponded ICD10
+            icd9_df = icd9_df.merge(icd10_to_icd9_map_df, 'inner', left_on=cc.code, right_on=cc.icd9_code)
+            icd9_df[cc.code] = icd9_df[cc.icd10_code]
+            icd9_df = icd9_df.drop(columns=[cc.icd9_code, cc.icd10_code]).drop_duplicates()
 
-        return df
+        return icd9_df
 
     def _group_patient_params(self, date_patient_map: dict, cohort_size: int = 10_000) -> list:
         """
