@@ -26,7 +26,7 @@ def runner(command: str, **kwargs):
                                   drop_csv=kwargs[opt.drop_csv],
                                   new_db=False)
         elif command == Command.run_study:
-            Application.run_study()
+            Application.run_study(db_name=kwargs[arg.db_name], study_list=kwargs[arg.study], local_db=False)
     except ValueError as e:
         print(e)
 

@@ -26,6 +26,7 @@ class EventRepository(BaseDbRepository):
             return None
         for c in df.columns:
             if c in cc.date_columns:
-                df[c] = pd.to_datetime(df[c], format='%Y%m%d')
+                self.logger.debug(f'convert date column {c} to datetime')
+                df[c] = pd.to_datetime(df[c], format='%Y-%m-%d')
 
         return df

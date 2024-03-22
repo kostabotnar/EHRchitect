@@ -52,11 +52,14 @@ class BaseDbRepository(metaclass=ABCMeta):
                    event.negation, event.include_subcodes)
                   for patient_info in patient_groups]
 
+        self.db_manager.open_ssh_tunnel()
         res_dfs = ConcurrentUtil.do_async_job(self.__get_code_info_job, params)
+        self.db_manager.close_ssh_tunnel()
         self.logger.debug(f'concat result of {len(res_dfs)}')
         df = pd.concat(res_dfs) \
             if res_dfs and any([x is not None for x in res_dfs]) \
             else None
+        self.logger.debug(f'return codes info for {event.id} with {df.shape} records')
         return df
 
     def __get_code_info_job(self, codes: Optional[list], table_name: str, columns: list, patients_info: list,
@@ -142,9 +145,9 @@ class BaseDbRepository(metaclass=ABCMeta):
             max_date = None
             if dates is not None:
                 if dates[0] is not None:
-                    min_date = dates[0].strftime('%Y%m%d')
+                    min_date = dates[0].strftime('%Y-%m-%d')
                 if dates[1] is not None:
-                    max_date = dates[1].strftime('%Y%m%d')
+                    max_date = dates[1].strftime('%Y-%m-%d')
 
             if len(patients) > 1.5 * cohort_size:
                 # separate patients for the same time period

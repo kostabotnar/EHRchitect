@@ -61,37 +61,13 @@ def upload_table_from_file(db_name: str, table_name: str, file_name: str) -> str
            f"FIELDS TERMINATED BY ',' ENCLOSED BY '\"' LINES TERMINATED BY '\n' IGNORE 1 ROWS;"
 
 
-def create_med_drug_description_table(db_name: str, table_name: str):
-    return f"create table {db_name}.{table_name} as (" \
-           "select md.code as md_code, md.code_system as md_code_system, mi.code as mi_code, st.code_description " \
-           f"from {db_name}.medication_drug md " \
-           f"inner join {db_name}.medication_ingredient mi on md.unique_id = mi.unique_id " \
-           f"inner join {db_name}.standardized_terminology st on mi.code = st.code and mi.code_system = st.code_system" \
-           ");"
-
-
-def get_distinct_values(db, table, column, column_is_index=False):
-    query = f'SELECT DISTINCT {column} FROM {db}.{table}'
-    if column_is_index:
-        query += f' ORDER BY {column}'
-    query += ';'
-    return query
-
-
-def get_med_drug_data(db, table, columns, codes):
-    columns_str = ','.join(columns)
-    codes_str = SqlUtil.in_expression('code', codes)
-    return f'select {columns_str} from {db}.{table} where {codes_str};'
-
-
-def get_med_ingredients_by_unique_id(db, table, columns, unique_ids):
-    columns_str = ','.join(columns)
-    unique_ids_str = SqlUtil.in_expression("unique_id", unique_ids)
-    return f'select {columns_str} from {db}.{table} where {unique_ids_str};'
-
-
 def get_codes_description(codes_and_system: list):
-    codes_and_system_str = [f"(code='{c}' and code_system='{s}')" for c, s in codes_and_system]
+    codes_and_system_str = []
+    for c, s in codes_and_system:
+        systems = [f"'{system}'" for system in s]
+        systems = ",".join(systems)
+        code_system_str = f"(code='{c}' and code_system in ({systems}))"
+        codes_and_system_str.append(code_system_str)
     codes_and_system_str = ' or '.join(codes_and_system_str)
     return f'select * from {ct.code_description} where {codes_and_system_str};'
 

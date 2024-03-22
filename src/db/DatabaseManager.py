@@ -11,7 +11,6 @@ from sshtunnel import SSHTunnelForwarder
 import src.db.QueryBuilder as QB
 from src.config.AppConfig import AppConfig
 from src.db.SqlDataElement import SqlTable
-from src.util import Error
 
 
 class DatabaseManager:
@@ -64,7 +63,7 @@ class DatabaseManager:
         self.__sql_engine = None
 
     def connect_to_db(self, local_infile: bool = False) -> Connection:
-        self.logger.debug('Connect to DB')
+        self.logger.debug(f'Connect to DB {self.database_name}')
 
         try:
             conn = pymysql.connect(
@@ -137,8 +136,11 @@ class DatabaseManager:
         conn.close()
         self.logger.debug(f'Data from {file_name} uploaded successfully')
 
-    def __do_request_df(self, sql_query):
-        self.logger.debug(f'__do_request_df: {sql_query[:500]}')
+    def __do_request_df(self, sql_query: str, parse_dates: list = None) -> Optional[pd.DataFrame]:
+        if len(sql_query) > 400:
+            self.logger.debug(f'__do_request_df: {sql_query[:200]} ... {sql_query[-200:]}')
+        else:
+            self.logger.debug(f'__do_request_df: {sql_query}')
 
         conn = self.connect_to_db()
         if conn is None:
@@ -147,8 +149,8 @@ class DatabaseManager:
         try:
             conn.connect()
             self.logger.debug('perform request')
-            df = pd.read_sql(sql_query, conn)
-        except Error as e:
+            df = pd.read_sql(sql_query, conn, parse_dates=parse_dates)
+        except BaseException as e:
             self.logger.debug(e)
             df = None
         finally:
@@ -169,7 +171,7 @@ class DatabaseManager:
             with conn.cursor() as cursor:
                 cursor.execute(sql_query)
                 result = cursor.fetchall()
-        except Error as e:
+        except BaseException as e:
             self.logger.debug(e)
             result = None
         finally:
@@ -205,10 +207,10 @@ class DatabaseManager:
         result = self.__do_request_df(query)
         return result
 
-    def request_patient_info(self, patients, columns):
-        self.logger.debug(f'request_patient_info: columns={columns}')
+    def request_patient_info(self, patients, columns, parse_dates: list = None):
+        self.logger.debug(f'request_patient_info: columns={columns}, dates columns={parse_dates}')
         query = QB.get_patient_info(patients, columns)
-        result = self.__do_request_df(query)
+        result = self.__do_request_df(query, parse_dates=parse_dates)
         return result
 
     def request_codes_description(self, codes):
@@ -231,7 +233,7 @@ class DatabaseManager:
         :param first_match: get only first (earliest) fitted record for each patient
         :return: dataframe with result
         """
-        self.logger.debug(f'request_codes_info: codes={codes} table={table}'
+        self.logger.debug(f'request_codes_info: codes={codes} table={table} '
                           f'column={columns} include_subcodes = {include_subcodes}')
 
         query = QB.get_code_info(codes, table, columns, include_subcodes, patients_info, first_match)
