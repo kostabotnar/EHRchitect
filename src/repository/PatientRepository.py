@@ -12,10 +12,7 @@ class PatientRepository(BaseDbRepository):
     def get_patients_info(self, patients, columns):
         self.logger.debug(f'get_patients_info: columns={columns}')
         self.db_manager.open_ssh_tunnel()
-        date_cols = [c for c in columns if c in cc.date_columns]
-        if not date_cols:
-            date_cols = None
-        df = self.db_manager.request_patient_info(patients, columns, parse_dates=date_cols)
+        df = self.db_manager.request_patient_info(patients, columns)
         self.db_manager.close_ssh_tunnel()
         if df.empty:
             return None

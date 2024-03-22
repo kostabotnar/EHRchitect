@@ -11,6 +11,7 @@ from sshtunnel import SSHTunnelForwarder
 import src.db.QueryBuilder as QB
 from src.config.AppConfig import AppConfig
 from src.db.SqlDataElement import SqlTable
+from src.datamodel.DataColumns import CommonColumns as cc
 
 
 class DatabaseManager:
@@ -149,7 +150,7 @@ class DatabaseManager:
         try:
             conn.connect()
             self.logger.debug('perform request')
-            df = pd.read_sql(sql_query, conn, parse_dates=parse_dates)
+            df = pd.read_sql(sql_query, conn, parse_dates=parse_dates if parse_dates else None)
         except BaseException as e:
             self.logger.debug(e)
             df = None
@@ -204,12 +205,14 @@ class DatabaseManager:
     ) -> Optional[pd.DataFrame]:
         self.logger.debug(f'request_dead_patient_ids: column={columns}')
         query = QB.request_dead_patients(patients_info, columns)
-        result = self.__do_request_df(query)
+        parse_dates = [c for c in columns if c in cc.date_columns]
+        result = self.__do_request_df(query, parse_dates=parse_dates)
         return result
 
-    def request_patient_info(self, patients, columns, parse_dates: list = None):
-        self.logger.debug(f'request_patient_info: columns={columns}, dates columns={parse_dates}')
+    def request_patient_info(self, patients, columns):
+        self.logger.debug(f'request_patient_info: columns={columns}')
         query = QB.get_patient_info(patients, columns)
+        parse_dates = [c for c in columns if c in cc.date_columns]
         result = self.__do_request_df(query, parse_dates=parse_dates)
         return result
 
@@ -237,13 +240,6 @@ class DatabaseManager:
                           f'column={columns} include_subcodes = {include_subcodes}')
 
         query = QB.get_code_info(codes, table, columns, include_subcodes, patients_info, first_match)
-        result = self.__do_request_df(query)
+        parse_dates = [c for c in columns if c in cc.date_columns]
+        result = self.__do_request_df(query, parse_dates=parse_dates)
         return result.dropna().drop_duplicates() if result is not None else None
-
-    def request_patient_codes_to_date(
-            self, date_patient_dict: dict, table_name: str, columns: list, date_column: str
-    ) -> pd.DataFrame:
-        self.logger.debug(f'request_patient_codes_to_date')
-        query = QB.request_patient_codes_to_date(date_patient_dict, table_name, columns, date_column)
-        result = self.__do_request_df(query)
-        return result.dropna().drop_duplicates()
