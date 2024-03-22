@@ -49,7 +49,9 @@ class GetEventData:
             self, event: Event, date_patient_map: Optional[dict], etf: ExperimentTimeFrame
     ) -> Optional[dict]:
         self.logger.debug(
-            f'Adjusting event period for event: {event}, date_patient_map: {date_patient_map}, etf: {etf}')
+            f'Adjusting event period for event: {event}, '
+            f'date_patient_map size {0 if date_patient_map is None else len(date_patient_map)}, '
+            f'study time frame: {etf}')
         new_map = dict()
         if date_patient_map is None:
             return None
@@ -105,7 +107,7 @@ class GetEventData:
             df[cc.event_id] = event.id
             if event.has_attribute_events():
                 df = self.__filter_attribute_evens(df, event)
-        self.logger.debug(f'Returning event info for event: {event}, data size: {df.shape}')
+        self.logger.debug(f'Returning event info for event: {event.id}, data size: {0 if df is None else df.shape}')
         return df
 
     def __get_attribute_events(self, df: pd.DataFrame, event: Event, exclude: bool = False) -> Optional[pd.DataFrame]:
