@@ -1,0 +1,10 @@
+{
+  "ssh_host": "ssh_host_ip",
+  "ssh_username": "ssh_username",
+  "ssh_password": "ssh_password",
+  "mysql_username": "mysql_username",
+  "mysql_password": "mysql_password",
+  "localhost": "127.0.0.1",
+  "localport": 3306,
+  "db_instances": ["MySql database name for study 1", "MySql database name for study 1"]
+}
