@@ -73,7 +73,7 @@ class ConvertDataModel:
         if file_name == 'patient.csv':
             # convert years of birth and death to datetime format
             df[cc_cols.date_of_birth] = pd.to_datetime(df[cc_cols.date_of_birth], format='%Y')
-            df[cc_cols.date_of_death] = pd.to_datetime(df[cc_cols.date_of_death], format='%Y%m')
+            df[cc_cols.date_of_death] = pd.to_datetime(df[cc_cols.date_of_death], format='%Y%m') + pd.offsets.MonthEnd()
         else:
             table_name = table_map[map_cols.table].tolist()[0]
             date_columns = [c for c in self.get_tnx_table_date_columns(table_name)]
