@@ -162,3 +162,4 @@ cython_debug/
 app_config.json
 /temp/
 /data_arch/
+/study_config/
