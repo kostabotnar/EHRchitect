@@ -9,8 +9,8 @@ from mashumaro.mixins.json import DataClassJSONMixin
 
 @dataclass(frozen=True)
 class ExperimentTimeFrame(DataClassJSONMixin):
-    min_date: Optional[int] = None
-    max_date: Optional[int] = None
+    min_date: Optional[str] = None
+    max_date: Optional[str] = None
 
 
 @dataclass(frozen=True)
