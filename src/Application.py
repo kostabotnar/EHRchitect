@@ -55,14 +55,16 @@ def create_db(db_name: str, url: str, archive: str, local_access: bool, new_db: 
     logger.debug('======Finish======')
 
 
-def run_study(db_name: str, study_list: list, local_db: bool = True):
+def run_study(db_name: str, out_dir: str, study_list: list, local_db: bool = True):
     logger.debug('======Run Study Data Selection======')
-    logger.debug(f'DB: {db_name}, study list: {study_list}')
+    logger.debug(f'DB: {db_name}, out dir: {out_dir}, study list: {study_list}')
     app_config = init_app_config()
     if db_name not in app_config.db_instances:
         logger.error(f'Database {db_name} not found in the config.\n'
                      f'Available databases: {app_config.db_instances}')
         return
+
+    FileProvider().result_path = out_dir
 
     db_manager = DatabaseManager(app_config, db_name=db_name, local_access=local_db)
     event_repo = EventRepository(db_manager)

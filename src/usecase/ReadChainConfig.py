@@ -11,8 +11,7 @@ class ReadChainConfig:
 
     def execute(self, config_file_name: str) -> ExperimentConfig:
         self.logger.debug(f'execute for {config_file_name}')
-        fname = self.__file_provider.get_study_config_file_path(config_file_name)
-        with open(fname) as f:
+        with open(config_file_name) as f:
             config_txt = f.readlines()
             config_txt = ''.join(config_txt)
         config = ExperimentConfig.from_json(config_txt)

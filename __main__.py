@@ -1,7 +1,7 @@
 import click
 
 from src import Application
-from src.api import Argument as arg, Option as opt, validate, Command
+from src.api import Option as opt, validate, Command
 
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 
@@ -10,7 +10,7 @@ def runner(command: str, **kwargs):
     try:
         validate(command, **kwargs)
         if command == Command.create_new_db:
-            Application.create_db(db_name=kwargs[arg.db_name],
+            Application.create_db(db_name=kwargs[opt.database],
                                   url=kwargs[opt.url],
                                   archive=kwargs[opt.archive],
                                   local_access=kwargs[opt.local_access],
@@ -18,7 +18,7 @@ def runner(command: str, **kwargs):
                                   drop_csv=kwargs[opt.drop_csv],
                                   new_db=True)
         elif command == Command.append_data:
-            Application.create_db(db_name=kwargs[arg.db_name],
+            Application.create_db(db_name=kwargs[opt.database],
                                   url=kwargs[opt.url],
                                   archive=kwargs[opt.archive],
                                   local_access=kwargs[opt.local_access],
@@ -26,8 +26,8 @@ def runner(command: str, **kwargs):
                                   drop_csv=kwargs[opt.drop_csv],
                                   new_db=False)
         elif command == Command.run_study:
-            Application.run_study(db_name=kwargs[arg.db_name], study_list=kwargs[arg.study],
-                                  local_db=kwargs[opt.local_access])
+            Application.run_study(db_name=kwargs[opt.database], out_dir=kwargs[opt.out_dir],
+                                  study_list=kwargs[opt.study], local_db=kwargs[opt.local_access])
     except ValueError as e:
         print(e)
 
@@ -39,7 +39,8 @@ def run():
 
 
 @run.command()
-@click.argument(arg.db_name)
+@click.option(f'--{opt.database}',
+              help='Name of the database to be created')
 @click.option(f'--{opt.url}',
               default=None,
               help='URL obtained from the TriNetX export option. '
@@ -61,12 +62,13 @@ def run():
 @click.option(f'--{opt.drop_csv}', default=True,
               help='If TRUE, then .csv files with the common data model will be deleted after data uploaded to the '
                    'database.')
-def createdb(**kwargs):
+def create(**kwargs):
     runner(command=Command.create_new_db, **kwargs)
 
 
 @run.command()
-@click.argument(arg.db_name)
+@click.option(f'--{opt.database}',
+              help='Name of the database to append data to')
 @click.option(f'--{opt.url}',
               default=None,
               help='URL obtained from the TriNetX export option. '
@@ -93,12 +95,16 @@ def append(**kwargs):
 
 
 @run.command()
-@click.argument(arg.db_name)
-@click.argument(arg.study, nargs=-1)
+@click.option(f'--{opt.database}',
+              help='Name of the database to select data from')
+@click.option(f'--{opt.study}', multiple=True,
+              help='Study configuration file to be executed. Multiple studies can be set using --s option')
+@click.option(f'--{opt.out_dir}',
+              help='Path to the directory where the results will be stored.')
 @click.option(f'--{opt.local_access}',
               default=True,
               help='If False, then SSH connection will be used. '
-                   'Otherwise, the local host DB connection will be establish')
+                   'Otherwise, the local host DB connection will be establish.')
 def run_study(**kwargs):
     runner(command=Command.run_study, **kwargs)
 
