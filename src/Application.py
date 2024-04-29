@@ -27,7 +27,7 @@ logger = logging.getLogger('Main')
 
 def create_db(db_name: str, url: str, archive: str, local_access: bool, new_db: bool, set_index: bool, drop_csv: bool):
     logger.debug('======Start======')
-    if not download_dataset(url, archive):
+    if (url is not None) and (not download_dataset(url, archive)):
         return
     data_path = ConvertDataModel().execute(archive, 'tnx')
     tables_data = ParseDataDictionary().execute(data_path)
