@@ -27,7 +27,8 @@ logger = logging.getLogger('Main')
 
 def create_db(db_name: str, url: str, archive: str, local_access: bool, new_db: bool, set_index: bool, drop_csv: bool):
     logger.debug('======Start======')
-    download_dataset(url, archive)
+    if not download_dataset(url, archive):
+        return
     data_path = ConvertDataModel().execute(archive, 'tnx')
     tables_data = ParseDataDictionary().execute(data_path)
 
@@ -89,17 +90,17 @@ def run_study(db_name: str, study_list: list, local_db: bool = True):
     logger.debug('======Finish Study Data Selection======')
 
 
-def download_dataset(url: str, archive: str, default_name: str = None):
+def download_dataset(url: str, archive: str):
     logger.debug(f'Download dataset {url} to {archive}')
-    if url is not None:
-        # download dataset archive
-        if archive is None:
-            # compose archive name
-            archive = f'./{fp.data_archive_path}/{default_name}_{datetime.datetime.now().strftime("%Y%m%d_%H%M%S")}.zip'
-        result = DownloadTnxDataset().execute(url, archive)
-        if result is not None:
-            logger.error(f'Download error: {result}.')
-            return
+    if url is None or archive is None:
+        logger.error(f'Download error: url or archive is not defined.')
+        return False
+    result = DownloadTnxDataset().execute(url, archive)
+    if result is not None:
+        logger.error(f'Download error: {result}.')
+        return False
+
+    return True
 
 
 def init_app_config():

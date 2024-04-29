@@ -27,10 +27,6 @@ class FileProvider(object):
         return self.project_dir / "data"
 
     @property
-    def data_archive_path(self) -> Path:
-        return self.project_dir / "data_arch"
-
-    @property
     def study_config_path(self) -> Path:
         return self.project_dir / "study_config"
 

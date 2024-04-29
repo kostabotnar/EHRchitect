@@ -43,6 +43,12 @@ def validate_data_import(**kwargs) -> bool:
             f'{Option.url} value: "{kwargs[Option.url]}. "'
             f'{Option.archive} value: "{kwargs[Option.archive]}."'
         )
+    if valid_url and not valid_archive:
+        raise ValueError(
+            f'Value Error: {Option.archive} should be to store data from the {Option.url}. '
+            f'{Option.url} value: "{kwargs[Option.url]}. "'
+            f'{Option.archive} value: "{kwargs[Option.archive]}."'
+        )
     return True
 
 

@@ -47,9 +47,8 @@ def run():
                    'If neither --url nor --archive are set, an empty database will be created.')
 @click.option(f'--{opt.archive}',
               default=None,
-              help='Archive file name to store data from URL. '
+              help='Archive full file name to store data from URL. '
                    'If URL is null, then this option is a path to the existing data archive. '
-                   'If it is null, it will be constructed from the database name and timestamp. '
                    'If neither --url nor --archive are set, an empty database will be created.')
 @click.option(f'--{opt.local_access}',
               default=True,
@@ -75,9 +74,8 @@ def createdb(**kwargs):
                    'If neither --url nor --archive are set, an empty database will be created.')
 @click.option(f'--{opt.archive}',
               default=None,
-              help='Archive file name to store data from URL. '
+              help='Archive full file name to store data from URL. '
                    'If URL is null, then this option is a path to the existing data archive. '
-                   'If it is null, it will be constructed from the database name and timestamp. '
                    'If neither --url nor --archive are set, an empty database will be created.')
 @click.option(f'--{opt.local_access}',
               default=True,
