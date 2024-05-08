@@ -9,11 +9,9 @@ class FileProvider(object):
     def __new__(cls):
         if cls._instance is None:
             cls._instance = super(FileProvider, cls).__new__(cls)
+            cls._instance.project_dir = Path(__file__).resolve().parents[2]
+            cls._instance.result_path = None
         return cls._instance
-
-    def __init__(self):
-        self.project_dir = Path(__file__).resolve().parents[2]
-        self.result_path = None
 
     @property
     def config_path(self) -> Path:
