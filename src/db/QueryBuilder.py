@@ -123,7 +123,8 @@ def compose_date_patient_condition(patients_info: list, date_column: str, table:
 
 
 def get_code_info(codes: list, table: str, columns: list, include_subcodes: bool = False,
-                  patients_info: Optional[list] = None, first_match=False) -> str:
+                  patients_info: Optional[list] = None, first_match=False, num_value: str = None, text_value: str = None
+                  ) -> str:
     # select column expression
     request_columns = []
     for c in columns:
@@ -160,8 +161,15 @@ def get_code_info(codes: list, table: str, columns: list, include_subcodes: bool
         codes_condition = SqlUtil.like_expression(request_code_column, codes) if include_subcodes else \
             SqlUtil.in_expression(request_code_column, codes)
 
+    # values conditions for labs and vitals
+    values_condition = None
+    if num_value is not None:
+        values_condition = f'({cc.num_value}{num_value})'
+    elif text_value is not None:
+        values_condition = f'({cc.text_value}={text_value})'
+
     # request body
-    cond_list = [codes_condition, date_patient_condition]
+    cond_list = [codes_condition, date_patient_condition, values_condition]
     where = ' and '.join([f"({x})" for x in cond_list if x is not None])
     where_expr = f'where {where}' if len(where) > 0 else ''
 

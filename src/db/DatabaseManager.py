@@ -224,7 +224,8 @@ class DatabaseManager:
 
     def request_code_info(self, codes: Optional[list], table: str, columns: Optional[list] = None,
                           include_subcodes: bool = False, patients_info: Optional[list] = None,
-                          first_match: bool = False) -> Optional[pd.DataFrame]:
+                          first_match: bool = False, num_value: str = None, text_value: str = None
+                          ) -> Optional[pd.DataFrame]:
         """
         Get codes description from table
         :param codes: codes for search
@@ -234,12 +235,15 @@ class DatabaseManager:
         codes list to search like T31.1, T31.2, T31.3 etc.
         :param patients_info: list of tuples with min_date, max_date, patients ids for this dates
         :param first_match: get only first (earliest) fitted record for each patient
+        :param text_value: numerical value threshold for labs and vitals. Contains operation sign and value ">18", "<=0.01"
+        :param num_value: text value to filter for labs and vitals.
         :return: dataframe with result
         """
         self.logger.debug(f'request_codes_info: codes={codes} table={table} '
                           f'column={columns} include_subcodes = {include_subcodes}')
 
-        query = QB.get_code_info(codes, table, columns, include_subcodes, patients_info, first_match)
+        query = QB.get_code_info(codes, table, columns, include_subcodes, patients_info, first_match, num_value,
+                                 text_value)
         parse_dates = [c for c in columns if c in cc.date_columns]
         result = self.__do_request_df(query, parse_dates=parse_dates)
         return result.dropna().drop_duplicates() if result is not None else None
