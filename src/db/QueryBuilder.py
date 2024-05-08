@@ -164,9 +164,9 @@ def get_code_info(codes: list, table: str, columns: list, include_subcodes: bool
     # values conditions for labs and vitals
     values_condition = None
     if num_value is not None:
-        values_condition = f'({cc.num_value}{num_value})'
+        values_condition = f'{cc.num_value}{num_value}'
     elif text_value is not None:
-        values_condition = f'({cc.text_value}={text_value})'
+        values_condition = f'{cc.text_value}="{text_value}"'
 
     # request body
     cond_list = [codes_condition, date_patient_condition, values_condition]
