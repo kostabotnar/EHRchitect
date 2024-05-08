@@ -64,7 +64,7 @@ def run_study(db_name: str, out_dir: str, study_list: list, local_db: bool = Tru
                      f'Available databases: {app_config.db_instances}')
         return
 
-    FileProvider().result_path = out_dir
+    fp.set_result_path(out_dir)
 
     db_manager = DatabaseManager(app_config, db_name=db_name, local_access=local_db)
     event_repo = EventRepository(db_manager)

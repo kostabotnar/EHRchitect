@@ -25,6 +25,8 @@ class ExperimentEvent(DataClassJSONMixin):
     category: str
     name: str = None
     codes: list = field(default_factory=list)
+    num_value: str = None
+    text_value: str = None
     negation: bool = False
     include_subcodes: bool = False
     exclude: AttributeExperimentEvent = None

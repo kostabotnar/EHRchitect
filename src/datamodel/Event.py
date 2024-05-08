@@ -56,6 +56,8 @@ class Event:
     id: str
     category: EventCategory
     codes: Optional[list] = None
+    num_value: Optional[str] = None
+    text_value: Optional[str] = None
     negation: bool = False
     include_subcodes: bool = False
     exclusion_period: EventTimeInterval = None
@@ -108,6 +110,8 @@ class Event:
             id=id,
             codes=codes,
             category=category,
+            num_value=experiment_event.num_value,
+            text_value=experiment_event.text_value,
             negation=experiment_event.negation,
             include_subcodes=experiment_event.include_subcodes,
             exclusion_period=excl_period,
