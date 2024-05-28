@@ -11,10 +11,3 @@ class AppConfig(DataClassJSONMixin):
     mysql_password: str
     localhost: str
     localport: int
-    db_instances: list[str] = None
-
-    def add_database(self, db_name: str):
-        if self.db_instances is None:
-            self.db_instances = [db_name]
-        else:
-            self.db_instances.append(db_name)

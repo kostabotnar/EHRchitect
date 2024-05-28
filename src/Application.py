@@ -50,8 +50,6 @@ def create_db(db_name: str, url: str, archive: str, local_access: bool, new_db: 
     if drop_csv:
         logger.debug(f'Delete data model csv files {data_path}')
         shutil.rmtree(data_path)
-    # add created database into the config
-    update_app_config(app_config, db_name)
     logger.debug('======Finish======')
 
 
@@ -59,14 +57,17 @@ def run_study(db_name: str, out_dir: str, study_list: list, local_db: bool = Tru
     logger.debug('======Run Study Data Selection======')
     logger.debug(f'DB: {db_name}, out dir: {out_dir}, study list: {study_list}')
     app_config = init_app_config()
-    if db_name not in app_config.db_instances:
+    db_manager = DatabaseManager(app_config)
+    dbs = db_manager.list_databases()
+    if db_name not in dbs:
         logger.error(f'Database {db_name} not found in the config.\n'
-                     f'Available databases: {app_config.db_instances}')
+                     f'Available databases: {dbs}')
         return
+    db_manager.database_name = db_name
+    db_manager.local_access = local_db
+    # db_manager = DatabaseManager(app_config, db_name=db_name, local_access=local_db)
 
     fp.set_result_path(out_dir)
-
-    db_manager = DatabaseManager(app_config, db_name=db_name, local_access=local_db)
     event_repo = EventRepository(db_manager)
     patient_repo = PatientRepository(db_manager)
     cd_repo = CodeDescriptionRepository(db_manager)
@@ -113,14 +114,6 @@ def init_app_config():
     return AppConfig.from_json(data)
 
 
-def update_app_config(app_config: AppConfig, db_name: str):
-    logger.debug(f'Update application config with database {db_name}')
-    app_config.add_database(db_name)
-    app_config_json = app_config.to_json()
-    with open(fp.app_config_file, 'w') as f:
-        f.write(app_config_json)
-
-
 def create_study_outcome_file_structure(study_config: ExperimentConfig):
     logger.debug('Create Outcome File Structure')
     study_res_full_path = fp.get_result_file_path(study_config.outcome_dir)
@@ -146,3 +139,9 @@ def find_event_chain_async(app_config: AppConfig, patient_group: tuple, experime
         experiment_config=experiment_config,
         include_icd9=include_icd9
     )
+
+
+def list_databases(db_name: str, app_config: AppConfig):
+    db_manager = DatabaseManager(app_config)
+    dbs = db_manager.list_databases()
+    return db_name in dbs

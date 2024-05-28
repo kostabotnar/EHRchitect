@@ -247,3 +247,27 @@ class DatabaseManager:
         parse_dates = [c for c in columns if c in cc.date_columns]
         result = self.__do_request_df(query, parse_dates=parse_dates)
         return result.dropna().drop_duplicates() if result is not None else None
+
+    def list_databases(self) -> list:
+        sql_query = "SHOW DATABASES;"
+        self.logger.debug(f'Executing query: {sql_query}')
+
+        conn = self.connect_to_db()
+        if conn is None:
+            self.logger.error('Failed to connect to the database.')
+            return []
+
+        try:
+            conn.connect()
+            self.logger.debug('Connected to the database. Listing databases...')
+            with conn.cursor() as cursor:
+                cursor.execute(sql_query)
+                # Fetch all database names in a list
+                databases = [db[0] for db in cursor.fetchall()]
+                self.logger.debug(f'Databases found: {databases}')
+                return databases
+        except BaseException as e:
+            self.logger.error(f'Error listing databases: {e}')
+            return []
+        finally:
+            conn.close()
