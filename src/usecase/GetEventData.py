@@ -228,16 +228,15 @@ class GetEventData:
     def __filter_attribute_evens(self, df: pd.DataFrame, event: Event) -> Optional[pd.DataFrame]:
         self.logger.debug(f'Filter attribute events for {event.id}')
 
-        self.logger.debug(f'exclude patients with {[e.id for e in event.exclusion_events]} '
-                          f'within {event.exclusion_period} days')
         if event.exclusion_events:
+            self.logger.debug(f'exclude patients with {[e.id for e in event.exclusion_events]} '
+                              f'within {event.exclusion_period} days')
             excl_df = self.__get_attribute_events(df, event, exclude=True)
             df = self.__filter_excluded_events(df, excl_df, event)
 
-        self.logger.debug(f'Filter patients with {event.having_events} '
-                          f'within {event.having_period} days')
-
         if event.having_events:
+            self.logger.debug(f'Filter patients with {event.having_events} '
+                              f'within {event.having_period} days')
             having_df = self.__get_attribute_events(df, event, exclude=False)
             df = self.__filter_having_events(df, having_df, event)
         return df
