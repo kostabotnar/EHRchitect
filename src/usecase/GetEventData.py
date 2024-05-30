@@ -33,9 +33,9 @@ class GetEventData:
                 cols = cols + [cc.strength, cc.route, cc.brand]
             elif event.category == EventCategory.LabResult or event.category == EventCategory.VitalSign:
                 if event.num_value is not None:
-                    cols.append(cc.num_value)
+                    cols = cols + [cc.num_value]
                 if event.text_value is not None:
-                    cols.append(cc.text_value)
+                    cols = cols + [cc.text_value]
             return cols
 
         params = [(event,
