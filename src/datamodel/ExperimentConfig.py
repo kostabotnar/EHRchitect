@@ -13,10 +13,16 @@ class ExperimentTimeFrame(DataClassJSONMixin):
     max_date: Optional[str] = None
 
 
+class AttributeEventMode(Enum):
+    any = 'any'
+    all = 'all'
+
+
 @dataclass(frozen=True)
 class AttributeExperimentEvent(DataClassJSONMixin):
     events: list[ExperimentEvent]
     period: Optional[ExperimentTimeInterval] = None
+    mode: AttributeEventMode = AttributeEventMode.any
 
 
 @dataclass(frozen=True)
