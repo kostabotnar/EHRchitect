@@ -123,7 +123,8 @@ def compose_date_patient_condition(patients_info: list, date_column: str, table:
 
 
 def get_code_info(codes: list, table: str, columns: list, include_subcodes: bool = False,
-                  patients_info: Optional[list] = None, first_match=False, num_value: str = None, text_value: str = None
+                  patients_info: Optional[list] = None, first_incident=False, num_value: str = None,
+                  text_value: str = None
                   ) -> str:
     # select column expression
     request_columns = []
@@ -135,11 +136,13 @@ def get_code_info(codes: list, table: str, columns: list, include_subcodes: bool
         request_columns.append(c)
 
     # group by expression
-    if first_match and cc.date in columns:
-        request_date_column = f'{table}.{cc.date}'
-        request_columns.remove(request_date_column)
-        request_columns.append(f'min({request_date_column}) as {cc.date}')
-        group_by_expr = f'group by {",".join(request_columns[:-1])}'
+    if first_incident and cc.date in columns:
+        date_column = f'{table}.{cc.date}'
+        code_column = f'{table}.{cc.code}'
+        patient_column = f'{table}.{cc.patient_id}'
+        request_columns.remove(date_column)
+        request_columns.append(f'min({date_column}) as {cc.date}')
+        group_by_expr = f'group by {",".join([patient_column, code_column])}'
     else:
         group_by_expr = ''
     columns_expr = SqlUtil.selected_columns_expr(request_columns)

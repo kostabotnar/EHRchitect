@@ -63,17 +63,17 @@ class BaseDbRepository(metaclass=ABCMeta):
         return df
 
     def __get_code_info_job(self, codes: Optional[list], table_name: str, columns: list, patients_info: list,
-                            include_icd9: bool, first_match: bool, negation_event: bool = False,
+                            include_icd9: bool, first_incident: bool, negation_event: bool = False,
                             include_subcodes: bool = False, num_value: str = None, text_value: str = None
                             ) -> Optional[pd.DataFrame]:
         self.logger.debug(f'__get_code_info_job: table={table_name}')
         if not codes:
-            return self.__get_all_codes_info(table_name, columns, patients_info, first_match, num_value, text_value)
+            return self.__get_all_codes_info(table_name, columns, patients_info, first_incident, num_value, text_value)
 
         df = self.__process_positive_event_codes(
             codes=codes, table_name=table_name, columns=columns,
             include_subcodes=include_subcodes, patients_info=patients_info,
-            first_match=first_match, include_icd9=include_icd9,
+            first_incident=first_incident, include_icd9=include_icd9,
             num_value=num_value, text_value=text_value
         )
 
@@ -83,7 +83,7 @@ class BaseDbRepository(metaclass=ABCMeta):
         return df
 
     def __get_all_codes_info(
-            self, table_name: str, columns: list, patients_info: Optional[list] = None, first_match: bool = False,
+            self, table_name: str, columns: list, patients_info: Optional[list] = None, first_incident: bool = False,
             num_value: Optional[str] = None, text_value: Optional[str] = None
     ) -> Optional[pd.DataFrame]:
         """
@@ -91,19 +91,19 @@ class BaseDbRepository(metaclass=ABCMeta):
         :param table_name: table with codes
         :param columns: list of columns to request
         :param patients_info: list of lists of tuples with min date, max date and list of patients ids for db request
-        :param first_match: get only first (earliest) fitted record for each patient
+        :param first_incident: get only first (earliest) fitted record for each patient
         :return: dataframe from table with columns or None
         """
         self.logger.debug(f'_get_all_codes_info: table name = {table_name}')
         df = self.db_manager.request_code_info(
             codes=None, table=table_name, columns=columns,
-            include_subcodes=False, patients_info=patients_info, first_match=first_match,
+            include_subcodes=False, patients_info=patients_info, first_incident=first_incident,
             num_value=num_value, text_value=text_value
         )
         return df
 
     def __get_icd9_mapped_code_info(self, icd10_codes: list, table_name: str, columns: list, patients_info: list,
-                                    first_match: bool, include_subcodes: bool,
+                                    first_incident: bool, include_subcodes: bool,
                                     num_value: str, text_value: str) -> Optional[pd.DataFrame]:
         self.logger.debug(f'__get_icd9_mapped_code_info: codes={icd10_codes}')
         if not icd10_codes:
@@ -122,7 +122,7 @@ class BaseDbRepository(metaclass=ABCMeta):
         mapped_icd9_codes = icd10_to_icd9_map_df[cc.icd9_code].unique().tolist()
         icd9_df = self.db_manager.request_code_info(
             table=table_name, columns=columns, codes=mapped_icd9_codes, include_subcodes=False,
-            patients_info=patients_info, first_match=first_match, num_value=num_value, text_value=text_value
+            patients_info=patients_info, first_incident=first_incident, num_value=num_value, text_value=text_value
         )
         if icd9_df is None:
             return None
@@ -222,19 +222,19 @@ class BaseDbRepository(metaclass=ABCMeta):
 
     def __process_positive_event_codes(self, codes: Optional[list], table_name: str, columns: Optional[list] = None,
                                        include_subcodes: bool = False, patients_info: Optional[list] = None,
-                                       first_match: bool = False, include_icd9: bool = False,
+                                       first_incident: bool = False, include_icd9: bool = False,
                                        num_value: str = None, text_value: str = None) -> Optional[pd.DataFrame]:
         self.logger.debug(f'process_positive_event_codes for codes {codes}')
         df = self.db_manager.request_code_info(
             codes=codes, table=table_name, columns=columns,
             include_subcodes=include_subcodes, patients_info=patients_info,
-            first_match=first_match, num_value=num_value, text_value=text_value
+            first_incident=first_incident, num_value=num_value, text_value=text_value
         )
 
         if include_icd9:
             icd9_df = self.__get_icd9_mapped_code_info(
                 icd10_codes=codes, table_name=table_name, columns=columns, patients_info=patients_info,
-                first_match=first_match, include_subcodes=include_subcodes, num_value=num_value,
+                first_incident=first_incident, include_subcodes=include_subcodes, num_value=num_value,
                 text_value=text_value
             )
             if icd9_df is not None:
