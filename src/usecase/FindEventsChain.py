@@ -252,41 +252,6 @@ class FindEventsChain:
             df_res.append(df_event[event_time_mask])
         return pd.concat(df_res)
 
-    def __filter_first_events_within_encounter(self, df):
-        """
-        Leave only first presents of the code within encounter
-        :param df: data frame
-        :return: filtered data frame
-        """
-        self.logger.debug('__filter_events_with_encounter')
-        df['min'] = df.groupby([cc.encounter_id, cc.code])[cc.date].transform('min')
-        df = df[df[cc.date] == df['min']].drop(columns=['min', cc.encounter_id])
-        return df
-
-    def __filter_first_patient_match(self, df: pd.DataFrame, index_level_number: int,
-                                     target_level_number: int) -> pd.DataFrame:
-        # get the earliest record of matched code pairs for each patient
-        self.logger.debug(f'__filter_first_patient_match '
-                          f'between levels {index_level_number} and {target_level_number}')
-        index_date_col = cc.get_column_at_level(cc.date, index_level_number)
-        index_code_col = cc.get_column_at_level(cc.code, index_level_number)
-        target_date_col = cc.get_column_at_level(cc.date, target_level_number)
-        target_code_col = cc.get_column_at_level(cc.code, target_level_number)
-        first_match_col = "first_match"
-        # get first target date for each index date
-        df[first_match_col] = df.groupby(
-            [cc.patient_id, index_code_col, target_code_col, index_date_col]
-        )[target_date_col].transform('min')
-        df = df[df[target_date_col] == df[first_match_col]].drop(columns=[first_match_col])
-        # get first index date for each target date
-        df[first_match_col] = df.groupby(
-            [cc.patient_id, index_code_col, target_code_col, target_date_col]
-        )[index_date_col].transform('min')
-        df = df[df[index_date_col] == df[first_match_col]].drop(columns=[first_match_col])
-
-        df = df.drop_duplicates(subset=[cc.patient_id, index_code_col, index_date_col, target_code_col])
-        return df
-
     def __save_to_file(
             self, df: pd.DataFrame, file_dir: Path, file_name: str, file_format: str = 'parquet', index=None
     ):
@@ -296,21 +261,6 @@ class FindEventsChain:
         if index is not None:
             df = df.set_index(index)
         self.__file_provider.save_dataframe_file(df=df, file_dir=file_dir, filename=file_name, file_format=file_format)
-
-    def __valid_params(self, events_levels, distances):
-        self.logger.debug('__valid_params')
-        if len(events_levels) <= 1:
-            self.logger.debug(f'Should be more than 1 level: len(events_levels)={len(events_levels)}')
-            return False
-        if len(distances) != len(events_levels) - 1:
-            self.logger.debug(f'distances and events does not match: '
-                              f'len(distance) = {len(distances)}, len(events_levels) = {len(events_levels)}')
-            return False
-        if None in events_levels:
-            self.logger.debug(f'None value is not allowed in events. Use instead undefined event: '
-                              f'events_levels = {events_levels}')
-            return False
-        return True
 
     def __init_date_patient_map(self, etf: ExperimentTimeFrame, patients: list) -> dict:
         self.logger.debug('init experiment time frame')
@@ -365,12 +315,6 @@ class FindEventsChain:
             for i, row in df.iterrows()}
         return date_patient_map
 
-    def __append_total_time(self, df, level_number):
-        sum_columns = [cc.get_column_at_level(cc.time_interval, i)
-                       for i in range(level_number - 1)]
-        df[self.__col_total_time] = df[sum_columns].sum(axis=1)
-        return df
-
     def __merge_levels(self, index_df: pd.DataFrame, target_df: pd.DataFrame, index_level: ExperimentLevel,
                        target_level: ExperimentLevel):
         if index_df is None:
@@ -390,55 +334,3 @@ class FindEventsChain:
             return None
 
         return index_df
-
-    def __merge_chain_results(
-            self, level_chain_file_dict: dict, experiment_config: ExperimentConfig
-    ) -> pd.DataFrame:
-        self.logger.debug('__merge_chain_results')
-        # start merging from the last level to the first
-        levels = sorted(list(level_chain_file_dict.keys()), reverse=True)
-        file_name = self.__file_provider.get_result_file_path(
-            f'{experiment_config.outcome_dir}/{level_chain_file_dict[levels[0]]}'
-        )
-        res_chain = pd.read_parquet(file_name, engine='pyarrow').reset_index()
-        patients = res_chain[cc.patient_id].unique()
-        # since patients will be the same number prepare data for merging
-        total_patients = len(patients)
-        curr, step = 0, 1000 if total_patients > 1000 else total_patients
-        patient_bins = np.array_split(patients, total_patients // step)
-
-        for level in levels[1:]:
-            self.logger.debug(f'merge levels {level + 1} and {level}')
-            file_name = self.__file_provider.get_result_file_path(
-                f'{experiment_config.outcome_dir}/{level_chain_file_dict[level]}'
-            )
-            curr_chain = pd.read_parquet(file_name, engine='pyarrow').reset_index()
-            # remove patients not in chain
-            curr_chain = curr_chain[curr_chain[cc.patient_id].isin(patients)]
-            # merge chains
-            merge_cols = [cc.patient_id] + [c for c in curr_chain.columns if c.endswith(f'_{level}')]
-            merge_result = []
-            curr = 0
-            for curr_patients in patient_bins:
-                self.logger.debug(f'merge {curr}..{curr + step} from {total_patients}')
-                curr = curr + step
-
-                curr_chain_df = curr_chain[curr_chain[cc.patient_id].isin(curr_patients)]
-                curr_res_df = res_chain[res_chain[cc.patient_id].isin(curr_patients)]
-
-                curr_res_df = curr_res_df.merge(curr_chain_df, on=merge_cols)
-                curr_res_df.drop_duplicates(inplace=True)
-                merge_result.append(curr_res_df)
-
-            res_chain = pd.concat(merge_result)
-
-        # reverse order of chain columns
-        columns = [cc.patient_id]
-        for level in range(max(levels) + 1):
-            columns.extend([c for c in res_chain.columns if c.endswith(f'_{level}')])
-        res_chain = res_chain[columns]
-
-        # todo: remove records according to mode (all records, first record)
-        res_chain = self.__append_total_time(res_chain, len(experiment_config.levels))
-
-        return res_chain

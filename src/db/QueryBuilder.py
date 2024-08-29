@@ -180,13 +180,3 @@ def get_code_info(codes: list, table: str, columns: list, include_subcodes: bool
 
     return request
 
-
-def request_patient_codes_to_date(date_patient_dict: dict, table_name: str, columns: list, date_column: str) -> str:
-    columns_expr = SqlUtil.selected_columns_expr(columns)
-    where_expr = [f'({date_column} <= {d} and {SqlUtil.in_expression(cc.patient_id, p)})'
-                  for d, p in date_patient_dict.items()]
-    where_expr = ' OR '.join(where_expr)
-    if len(where_expr) > 0:
-        where_expr = f'where {where_expr}'
-    request = f"select {columns_expr} from {table_name} {where_expr}"
-    return request

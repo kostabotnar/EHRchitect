@@ -257,5 +257,3 @@ class BaseDbRepository(metaclass=ABCMeta):
         df = df.explode(cc.code)
         df = df.drop(columns=codes).dropna().drop_duplicates()
         return df
-
-

@@ -1,4 +1,3 @@
-import datetime
 import logging.config
 import shutil
 
@@ -139,9 +138,3 @@ def find_event_chain_async(app_config: AppConfig, patient_group: tuple, experime
         experiment_config=experiment_config,
         include_icd9=include_icd9
     )
-
-
-def list_databases(db_name: str, app_config: AppConfig):
-    db_manager = DatabaseManager(app_config)
-    dbs = db_manager.list_databases()
-    return db_name in dbs
