@@ -19,7 +19,7 @@ class BaseDbRepository(metaclass=ABCMeta):
         self.db_manager = db_manager
 
     def _get_codes_info(self, event: Event, columns: list, date_patient_map: Optional[dict] = None,
-                        include_icd9: bool = False, first_match: bool = False) -> Optional[pd.DataFrame]:
+                        include_icd9: bool = False, first_incident: bool = False) -> Optional[pd.DataFrame]:
         """
         Get codes info
         Codes can have two formats:
@@ -40,7 +40,7 @@ class BaseDbRepository(metaclass=ABCMeta):
         ignoring this parameter
         their info will be added to the result. In the end all ICD9 codes will be converted to the corresponded ICD10.
         WARNING!!! Initial ICD9 codes will not be converted to ICD10 during the event search
-        :param first_match: get only first (earliest) fitted record for each patient
+        :param first_incident: get only first (earliest) fitted record for each patient
         :return: dataframe from table with columns or None
         """
         self.logger.debug(f'_get_codes_info: codes = {event.codes}')
@@ -48,7 +48,7 @@ class BaseDbRepository(metaclass=ABCMeta):
         # define counter column if it necessary
         patient_groups = self._group_patient_params(date_patient_map) if date_patient_map else [None]
 
-        params = [(event.codes, event.get_data_table(), columns, patient_info, include_icd9, first_match,
+        params = [(event.codes, event.get_data_table(), columns, patient_info, include_icd9, first_incident,
                    event.negation, event.include_subcodes, event.num_value, event.text_value)
                   for patient_info in patient_groups]
 

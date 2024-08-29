@@ -25,7 +25,7 @@ class GetEventData:
         self.logger.debug('Created')
 
     def execute(self, level: ExperimentLevel, columns: list, date_patient_map: Optional[dict],
-                etf: Optional[ExperimentTimeFrame], include_icd9: bool = True, first_match: bool = False):
+                etf: Optional[ExperimentTimeFrame], include_icd9: bool = True, first_incident: bool = False):
         events = [Event.from_experiment_event(e) for e in level.events]
 
         def adjust_columns(event, cols):
@@ -42,7 +42,7 @@ class GetEventData:
                    adjust_columns(event, columns),
                    self.__adjust_event_period(event, date_patient_map, etf),
                    include_icd9,
-                   first_match)
+                   first_incident)
                   for event in events]
         res_data = ConcurrentUtil.do_async_job(self.__request_event_info, params_list=params)
         if len(res_data) == 0 or all(v is None for v in res_data):
@@ -88,7 +88,7 @@ class GetEventData:
         return new_map
 
     def __request_event_info(self, event: Event, columns: list, date_patient_map: Optional[dict] = None,
-                             include_icd9: bool = True, first_match: bool = False) -> Optional[pd.DataFrame]:
+                             include_icd9: bool = True, first_incident: bool = False) -> Optional[pd.DataFrame]:
         df = None
         if event.category == EventCategory.Patient:
             patient_columns = [cc.patient_id, cc.date_of_death]
@@ -105,7 +105,7 @@ class GetEventData:
         else:
             df = self.__event_repo.get_event_info(
                 event=event, columns=columns, date_patient_map=date_patient_map,
-                include_icd9=include_icd9, first_match=first_match
+                include_icd9=include_icd9, first_incident=first_incident
             )
 
         if (df is not None) and (not df.empty):

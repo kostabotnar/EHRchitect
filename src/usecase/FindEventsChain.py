@@ -85,7 +85,9 @@ class FindEventsChain:
         for i, experiment_level in enumerate(experiment_config.levels):
             curr_level_number = experiment_level.level
             self.logger.debug(f'__build_events_chain: build level {curr_level_number}')
-            df = self.__get_events_data(experiment_level, date_patient_map, experiment_config.time_frame, include_icd9)
+            first_incident = experiment_level.match_mode == MatchMode.first_match
+            df = self.__get_events_data(experiment_level, date_patient_map, experiment_config.time_frame, include_icd9,
+                                        first_incident)
             if df is None or df.empty:
                 self.logger.debug(f'No data for level {curr_level_number}')
                 return None
@@ -131,12 +133,12 @@ class FindEventsChain:
 
     def __get_events_data(self, level: ExperimentLevel, date_patient_map: Optional[dict] = None,
                           etf: ExperimentTimeFrame = None,
-                          include_icd9: bool = True, first_match: bool = False) -> Optional[pd.DataFrame]:
+                          include_icd9: bool = True, first_incident: bool = False) -> Optional[pd.DataFrame]:
         self.logger.debug(f'__get_events_data: events={level.events}')
 
         columns = [cc.patient_id, cc.code, cc.date]
         df = GetEventData(self.__patient_repo, self.__event_repo) \
-            .execute(level, columns, date_patient_map, etf, include_icd9, first_match)
+            .execute(level, columns, date_patient_map, etf, include_icd9, first_incident)
         if df is None:
             self.logger.warning('Nothing from events was found')
             return None
