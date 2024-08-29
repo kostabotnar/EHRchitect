@@ -204,9 +204,8 @@ class FindEventsChain:
                 # get the earliest index date
                 group_col = [cc.patient_id, col_index_event_id, col_index_code, col_target_event_id,
                              col_target_code]
-                curr_index_df['first_event'] = curr_index_df.groupby(group_col)[col_index_date].transform('min')
-                curr_index_df = curr_index_df[curr_index_df['first_event'] == curr_index_df[col_index_date]]. \
-                    drop(columns=['first_event'])
+                curr_index_df = curr_index_df[
+                    curr_index_df.index == curr_index_df.groupby(group_col)[col_index_date].transform('idxmin')]
 
             curr_index_df = curr_index_df[res_columns_order]
             merge_result.append(curr_index_df)
