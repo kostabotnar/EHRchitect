@@ -240,7 +240,8 @@ class DatabaseManager:
         :return: dataframe with result
         """
         self.logger.debug(f'request_codes_info: codes={codes} table={table} '
-                          f'column={columns} include_subcodes = {include_subcodes}')
+                          f'column={columns} include_subcodes = {include_subcodes} first_incident = {first_incident} '
+                          f'num_value = {num_value} text_value = {text_value}')
 
         query = QB.get_code_info(codes, table, columns, include_subcodes, patients_info, first_incident, num_value,
                                  text_value)
