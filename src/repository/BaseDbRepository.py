@@ -243,6 +243,9 @@ class BaseDbRepository(metaclass=ABCMeta):
         # convert all codes to base ones determined in config if subcodes flag is True and result df is not empty
         if include_subcodes and (df is not None) and (not df.empty) and (cc.code in df.columns):
             df = self.__convert_to_base_codes(df, codes)
+        # if first_incident flag is True, remove all records that are not first occurrence of the code
+        if first_incident:
+            df = df[df.index == df.groupby(['patient_id', 'code_0'])['date_0'].transform('idxmin')]
 
         return df
 
