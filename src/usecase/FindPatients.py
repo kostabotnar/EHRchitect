@@ -3,7 +3,7 @@ from typing import Optional
 
 import pandas as pd
 
-from src.datamodel.ExperimentConfig import ExperimentConfig, ExperimentLevel
+from src.datamodel.ExperimentConfig import ExperimentConfig, ExperimentLevel, MatchMode
 from src.datamodel.DataColumns import CommonColumns as cc
 from src.repository.EventRepository import EventRepository
 from src.repository.PatientRepository import PatientRepository
@@ -53,8 +53,9 @@ class FindPatients:
     def __get_index_patients(self, index_level: ExperimentLevel, include_icd9: bool = True) -> Optional[list]:
         self.logger.debug(f'get index event patients for {len(index_level.events)} events')
         columns = [cc.patient_id, cc.code, cc.date]
+        first_incident = index_level.match_mode == MatchMode.first_match
         res_data = GetEventData(self.__patient_repo, self.__event_repo) \
-            .execute(index_level, columns, None, None, include_icd9)
+            .execute(index_level, columns, None, None, include_icd9, first_incident)
         if res_data is None or res_data.empty:
             self.logger.debug('No patients were found')
             return None
