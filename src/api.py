@@ -2,6 +2,7 @@ class Command:
     create_new_db = 'createdb'
     append_data = 'append'
     run_study = "run_study"
+    validate_study = "validate_study"
 
 
 class Option:
@@ -24,6 +25,8 @@ def validate(command: str, **kwargs) -> bool:
         return validate_data_import(**kwargs)
     if command == Command.run_study:
         return validate_run_study(**kwargs)
+    if command == Command.validate_study:
+        return validate_validate_study(**kwargs)
     return False
 
 
@@ -61,6 +64,18 @@ def validate_run_study(**kwargs) -> bool:
     if len(kwargs[Option.out_dir]) == 0:
         raise ValueError(
             f'Value Error: Invalid {Option.out_dir} value: "{kwargs[Option.out_dir]}"'
+        )
+    if any([s[-4:] != 'json' for s in kwargs[Option.study]]):
+        raise ValueError(
+            f'Value Error: Invalid {Option.study} value. All study files should have JSON format'
+        )
+    return True
+
+
+def validate_validate_study(**kwargs) -> bool:
+    if len(kwargs[Option.study]) == 0:
+        raise ValueError(
+            f'Value Error: AT least one study should be set'
         )
     if any([s[-4:] != 'json' for s in kwargs[Option.study]]):
         raise ValueError(

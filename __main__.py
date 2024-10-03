@@ -28,6 +28,8 @@ def runner(command: str, **kwargs):
         elif command == Command.run_study:
             Application.run_study(db_name=kwargs[opt.database], out_dir=kwargs[opt.out_dir],
                                   study_list=kwargs[opt.study], local_db=kwargs[opt.local_access])
+        elif command == Command.validate_study:
+            Application.validate_study(study_list=kwargs[opt.study])
     except ValueError as e:
         print(e)
 
@@ -107,6 +109,13 @@ def append(**kwargs):
                    'Otherwise, the local host DB connection will be establish.')
 def run_study(**kwargs):
     runner(command=Command.run_study, **kwargs)
+
+
+@run.command()
+@click.option(f'--{opt.study}', multiple=True,
+              help='Study configuration file to be validated. Multiple studies can be set using --s option')
+def validate_study(**kwargs):
+    runner(command=Command.validate_study, **kwargs)
 
 
 if __name__ == '__main__':
