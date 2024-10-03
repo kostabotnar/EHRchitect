@@ -224,7 +224,8 @@ class DatabaseManager:
 
     def request_code_info(self, codes: Optional[list], table: str, columns: Optional[list] = None,
                           include_subcodes: bool = False, patients_info: Optional[list] = None,
-                          first_match: bool = False) -> Optional[pd.DataFrame]:
+                          first_incident: bool = False, num_value: str = None, text_value: str = None
+                          ) -> Optional[pd.DataFrame]:
         """
         Get codes description from table
         :param codes: codes for search
@@ -233,13 +234,41 @@ class DatabaseManager:
         :param include_subcodes: get subcodes of the given codes. For example T31 code with include subcodes flag gives
         codes list to search like T31.1, T31.2, T31.3 etc.
         :param patients_info: list of tuples with min_date, max_date, patients ids for this dates
-        :param first_match: get only first (earliest) fitted record for each patient
+        :param first_incident: get only first (earliest) fitted record for each patient
+        :param text_value: numerical value threshold for labs and vitals. Contains operation sign and value ">18", "<=0.01"
+        :param num_value: text value to filter for labs and vitals.
         :return: dataframe with result
         """
         self.logger.debug(f'request_codes_info: codes={codes} table={table} '
-                          f'column={columns} include_subcodes = {include_subcodes}')
+                          f'column={columns} include_subcodes = {include_subcodes} first_incident = {first_incident} '
+                          f'num_value = {num_value} text_value = {text_value}')
 
-        query = QB.get_code_info(codes, table, columns, include_subcodes, patients_info, first_match)
+        query = QB.get_code_info(codes, table, columns, include_subcodes, patients_info, first_incident, num_value,
+                                 text_value)
         parse_dates = [c for c in columns if c in cc.date_columns]
         result = self.__do_request_df(query, parse_dates=parse_dates)
         return result.dropna().drop_duplicates() if result is not None else None
+
+    def list_databases(self) -> list:
+        sql_query = "SHOW DATABASES;"
+        self.logger.debug(f'Executing query: {sql_query}')
+
+        conn = self.connect_to_db()
+        if conn is None:
+            self.logger.error('Failed to connect to the database.')
+            return []
+
+        try:
+            conn.connect()
+            self.logger.debug('Connected to the database. Listing databases...')
+            with conn.cursor() as cursor:
+                cursor.execute(sql_query)
+                # Fetch all database names in a list
+                databases = [db[0] for db in cursor.fetchall()]
+                self.logger.debug(f'Databases found: {databases}')
+                return databases
+        except BaseException as e:
+            self.logger.error(f'Error listing databases: {e}')
+            return []
+        finally:
+            conn.close()

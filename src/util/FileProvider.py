@@ -9,14 +9,12 @@ class FileProvider(object):
     def __new__(cls):
         if cls._instance is None:
             cls._instance = super(FileProvider, cls).__new__(cls)
+            cls._instance.project_dir = Path(__file__).resolve().parents[2]
+            cls._instance.result_path = Path.cwd()
         return cls._instance
 
-    def __init__(self):
-        self.project_dir = Path(__file__).resolve().parents[2]
-
-    @property
-    def result_path(self) -> Path:
-        return self.project_dir / "build"
+    def set_result_path(self, path: str):
+        self.result_path = Path(path)
 
     @property
     def config_path(self) -> Path:
@@ -25,14 +23,6 @@ class FileProvider(object):
     @property
     def data_path(self) -> Path:
         return self.project_dir / "data"
-
-    @property
-    def data_archive_path(self) -> Path:
-        return self.project_dir / "data_arch"
-
-    @property
-    def study_config_path(self) -> Path:
-        return self.project_dir / "study_config"
 
     @property
     def log_config_file(self) -> Path:
@@ -81,9 +71,6 @@ class FileProvider(object):
             df.to_csv(file_dir / filename)
         elif file_format == 'parquet':
             df.to_parquet(file_dir / filename, engine='pyarrow')
-
-    def get_study_config_file_path(self, filename):
-        return self.study_config_path / filename
 
     def events_metadata_file_location(self, dir_name) -> tuple:
         return self.result_path / dir_name, 'events.parquet'

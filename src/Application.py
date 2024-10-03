@@ -1,4 +1,3 @@
-import datetime
 import logging.config
 import shutil
 
@@ -16,7 +15,7 @@ from src.usecase.DownloadTnxDataset import DownloadTnxDataset
 from src.usecase.FindEventsChain import FindEventsChain
 from src.usecase.FindPatients import FindPatients
 from src.usecase.ParseDataDictionary import ParseDataDictionary
-from src.usecase.ReadChainConfig import ReadChainConfig
+from src.usecase.StudyConfigReader import StudyConfigReader
 from src.util.ConcurrentUtil import ConcurrentUtil
 from src.util.FileProvider import FileProvider
 
@@ -27,7 +26,8 @@ logger = logging.getLogger('Main')
 
 def create_db(db_name: str, url: str, archive: str, local_access: bool, new_db: bool, set_index: bool, drop_csv: bool):
     logger.debug('======Start======')
-    download_dataset(url, archive)
+    if (url is not None) and (not download_dataset(url, archive)):
+        return
     data_path = ConvertDataModel().execute(archive, 'tnx')
     tables_data = ParseDataDictionary().execute(data_path)
 
@@ -49,21 +49,24 @@ def create_db(db_name: str, url: str, archive: str, local_access: bool, new_db: 
     if drop_csv:
         logger.debug(f'Delete data model csv files {data_path}')
         shutil.rmtree(data_path)
-    # add created database into the config
-    update_app_config(app_config, db_name)
     logger.debug('======Finish======')
 
 
-def run_study(db_name: str, study_list: list, local_db: bool = True):
+def run_study(db_name: str, out_dir: str, study_list: list, local_db: bool = True):
     logger.debug('======Run Study Data Selection======')
-    logger.debug(f'DB: {db_name}, study list: {study_list}')
+    logger.debug(f'DB: {db_name}, out dir: {out_dir}, study list: {study_list}')
     app_config = init_app_config()
-    if db_name not in app_config.db_instances:
+    db_manager = DatabaseManager(app_config)
+    dbs = db_manager.list_databases()
+    if db_name not in dbs:
         logger.error(f'Database {db_name} not found in the config.\n'
-                     f'Available databases: {app_config.db_instances}')
+                     f'Available databases: {dbs}')
         return
+    db_manager.database_name = db_name
+    db_manager.local_access = local_db
+    # db_manager = DatabaseManager(app_config, db_name=db_name, local_access=local_db)
 
-    db_manager = DatabaseManager(app_config, db_name=db_name, local_access=local_db)
+    fp.set_result_path(out_dir)
     event_repo = EventRepository(db_manager)
     patient_repo = PatientRepository(db_manager)
     cd_repo = CodeDescriptionRepository(db_manager)
@@ -71,7 +74,7 @@ def run_study(db_name: str, study_list: list, local_db: bool = True):
 
     for config_file_name in study_list:
         logger.debug(f'RUN CONFIG {config_file_name}')
-        study_config = ReadChainConfig().execute(config_file_name)
+        study_config = StudyConfigReader().read(config_file_name)
         create_study_outcome_file_structure(study_config)
 
         patient_groups = FindPatients(patient_repo, event_repo).execute(study_config, include_icd9)
@@ -89,17 +92,26 @@ def run_study(db_name: str, study_list: list, local_db: bool = True):
     logger.debug('======Finish Study Data Selection======')
 
 
-def download_dataset(url: str, archive: str, default_name: str = None):
+def validate_study(study_list: list):
+    logger.debug('======Run Study Validation======')
+    for config_file_name in study_list:
+        logger.debug(f'Validate config {config_file_name}')
+        if StudyConfigReader().validate(config_file_name):
+            logger.info(f'Config {config_file_name} is correct')
+
+    logger.debug('======Study Validation is Finished======')
+
+def download_dataset(url: str, archive: str):
     logger.debug(f'Download dataset {url} to {archive}')
-    if url is not None:
-        # download dataset archive
-        if archive is None:
-            # compose archive name
-            archive = f'./{fp.data_archive_path}/{default_name}_{datetime.datetime.now().strftime("%Y%m%d_%H%M%S")}.zip'
-        result = DownloadTnxDataset().execute(url, archive)
-        if result is not None:
-            logger.error(f'Download error: {result}.')
-            return
+    if url is None or archive is None:
+        logger.error(f'Download error: url or archive is not defined.')
+        return False
+    result = DownloadTnxDataset().execute(url, archive)
+    if result is not None:
+        logger.error(f'Download error: {result}.')
+        return False
+
+    return True
 
 
 def init_app_config():
@@ -108,14 +120,6 @@ def init_app_config():
         lines = f.readlines()
     data = ''.join(lines)
     return AppConfig.from_json(data)
-
-
-def update_app_config(app_config: AppConfig, db_name: str):
-    logger.debug(f'Update application config with database {db_name}')
-    app_config.add_database(db_name)
-    app_config_json = app_config.to_json()
-    with open(fp.app_config_file, 'w') as f:
-        f.write(app_config_json)
 
 
 def create_study_outcome_file_structure(study_config: ExperimentConfig):

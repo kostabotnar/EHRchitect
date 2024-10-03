@@ -2,20 +2,18 @@ class Command:
     create_new_db = 'createdb'
     append_data = 'append'
     run_study = "run_study"
-
-
-class Argument:
-    db_name = 'db_name'
-    study = 'study'
+    validate_study = "validate_study"
 
 
 class Option:
+    database = 'db'
+    study = 's'
     url = 'url'
-    archive = 'archive'
-    local_access = 'local_access'
-    create_new_db = 'create_new_db'
+    archive = 'arch'
+    local_access = 'la'
     set_index = 'set_index'
     drop_csv = 'drop_csv'
+    out_dir = 'out'
 
     format_values = {'TNX'}  # OMOP, MIMICIV
 
@@ -27,15 +25,17 @@ def validate(command: str, **kwargs) -> bool:
         return validate_data_import(**kwargs)
     if command == Command.run_study:
         return validate_run_study(**kwargs)
+    if command == Command.validate_study:
+        return validate_validate_study(**kwargs)
     return False
 
 
 def validate_data_import(**kwargs) -> bool:
     valid_url = kwargs[Option.url] is not None and len(kwargs[Option.url].strip()) > 0
     valid_archive = kwargs[Option.archive] is not None and len(kwargs[Option.archive].strip()) > 0
-    if kwargs[Argument.db_name] is not None and kwargs[Argument.db_name].strip() == "":
+    if kwargs[Option.database] is not None and kwargs[Option.database].strip() == "":
         raise ValueError(
-            f'Value Error: Invalid {Argument.db_name} value: "{kwargs[Argument.db_name]}"'
+            f'Value Error: Invalid {Option.database} value: "{kwargs[Option.database]}"'
         )
     if not valid_url and not valid_archive:
         raise ValueError(
@@ -43,20 +43,42 @@ def validate_data_import(**kwargs) -> bool:
             f'{Option.url} value: "{kwargs[Option.url]}. "'
             f'{Option.archive} value: "{kwargs[Option.archive]}."'
         )
+    if valid_url and not valid_archive:
+        raise ValueError(
+            f'Value Error: {Option.archive} should be to store data from the {Option.url}. '
+            f'{Option.url} value: "{kwargs[Option.url]}. "'
+            f'{Option.archive} value: "{kwargs[Option.archive]}."'
+        )
     return True
 
 
 def validate_run_study(**kwargs) -> bool:
-    if kwargs[Argument.db_name].strip() == "":
+    if kwargs[Option.database].strip() == "":
         raise ValueError(
-            f'Value Error: Invalid {Argument.db_name} value: "{kwargs[Argument.db_name]}"'
+            f'Value Error: Invalid {Option.database} value: "{kwargs[Option.database]}"'
         )
-    if len(kwargs[Argument.study]) == 0:
+    if len(kwargs[Option.study]) == 0:
         raise ValueError(
             f'Value Error: AT least one study should be set'
         )
-    if any([s[-4:] != 'json' for s in kwargs[Argument.study]]):
+    if len(kwargs[Option.out_dir]) == 0:
         raise ValueError(
-            f'Value Error: Invalid {Argument.study} value. All study files should have JSON format'
+            f'Value Error: Invalid {Option.out_dir} value: "{kwargs[Option.out_dir]}"'
+        )
+    if any([s[-4:] != 'json' for s in kwargs[Option.study]]):
+        raise ValueError(
+            f'Value Error: Invalid {Option.study} value. All study files should have JSON format'
+        )
+    return True
+
+
+def validate_validate_study(**kwargs) -> bool:
+    if len(kwargs[Option.study]) == 0:
+        raise ValueError(
+            f'Value Error: AT least one study should be set'
+        )
+    if any([s[-4:] != 'json' for s in kwargs[Option.study]]):
+        raise ValueError(
+            f'Value Error: Invalid {Option.study} value. All study files should have JSON format'
         )
     return True

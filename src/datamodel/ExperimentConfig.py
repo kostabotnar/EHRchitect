@@ -9,22 +9,30 @@ from mashumaro.mixins.json import DataClassJSONMixin
 
 @dataclass(frozen=True)
 class ExperimentTimeFrame(DataClassJSONMixin):
-    min_date: Optional[int] = None
-    max_date: Optional[int] = None
+    min_date: Optional[str] = None
+    max_date: Optional[str] = None
+
+
+class AttributeEventMode(Enum):
+    any = 'any'
+    all = 'all'
 
 
 @dataclass(frozen=True)
 class AttributeExperimentEvent(DataClassJSONMixin):
     events: list[ExperimentEvent]
     period: Optional[ExperimentTimeInterval] = None
+    mode: AttributeEventMode = AttributeEventMode.any
 
 
 @dataclass(frozen=True)
 class ExperimentEvent(DataClassJSONMixin):
-    id: str
-    category: str
+    id: str = None
+    category: str = None
     name: str = None
     codes: list = field(default_factory=list)
+    num_value: str = None
+    text_value: str = None
     negation: bool = False
     include_subcodes: bool = False
     exclude: AttributeExperimentEvent = None
@@ -64,7 +72,7 @@ class MatchMode(Enum):
 
 @dataclass(frozen=True)
 class ExperimentLevel(DataClassJSONMixin):
-    level: int
+    level: int = -1
     name: str = None
     period: ExperimentTimeInterval = None
     events: list[ExperimentEvent] = field(default_factory=list[ExperimentEvent])
@@ -75,7 +83,6 @@ class ExperimentLevel(DataClassJSONMixin):
 class ExperimentConfig(DataClassJSONMixin):
     name: str = None
     levels: list[ExperimentLevel] = field(default_factory=list[ExperimentLevel])
-    comorbidity_scores: list[str] = field(default_factory=list[str])
     outcome_dir: str = None
     time_frame: Optional[ExperimentTimeFrame] = None
 

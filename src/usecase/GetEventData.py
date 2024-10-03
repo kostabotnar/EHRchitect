@@ -4,7 +4,7 @@ from typing import Optional
 
 import pandas as pd
 
-from src.datamodel.Event import Event
+from src.datamodel.Event import Event, AttributeMode
 from src.datamodel.Event import EventCategory, EventConstant
 from src.datamodel.ExperimentConfig import ExperimentLevel, ExperimentTimeFrame
 from src.repository.PatientRepository import PatientRepository
@@ -25,19 +25,24 @@ class GetEventData:
         self.logger.debug('Created')
 
     def execute(self, level: ExperimentLevel, columns: list, date_patient_map: Optional[dict],
-                etf: Optional[ExperimentTimeFrame], include_icd9: bool = True, first_match: bool = False):
+                etf: Optional[ExperimentTimeFrame], include_icd9: bool = True, first_incident: bool = False):
         events = [Event.from_experiment_event(e) for e in level.events]
 
         def adjust_columns(event, cols):
             if event.category == EventCategory.Medication:
                 cols = cols + [cc.strength, cc.route, cc.brand]
+            elif event.category == EventCategory.LabResult or event.category == EventCategory.VitalSign:
+                if event.num_value is not None:
+                    cols = cols + [cc.num_value]
+                if event.text_value is not None:
+                    cols = cols + [cc.text_value]
             return cols
 
         params = [(event,
                    adjust_columns(event, columns),
                    self.__adjust_event_period(event, date_patient_map, etf),
                    include_icd9,
-                   first_match)
+                   first_incident)
                   for event in events]
         res_data = ConcurrentUtil.do_async_job(self.__request_event_info, params_list=params)
         if len(res_data) == 0 or all(v is None for v in res_data):
@@ -83,7 +88,7 @@ class GetEventData:
         return new_map
 
     def __request_event_info(self, event: Event, columns: list, date_patient_map: Optional[dict] = None,
-                             include_icd9: bool = True, first_match: bool = False) -> Optional[pd.DataFrame]:
+                             include_icd9: bool = True, first_incident: bool = False) -> Optional[pd.DataFrame]:
         df = None
         if event.category == EventCategory.Patient:
             patient_columns = [cc.patient_id, cc.date_of_death]
@@ -100,7 +105,7 @@ class GetEventData:
         else:
             df = self.__event_repo.get_event_info(
                 event=event, columns=columns, date_patient_map=date_patient_map,
-                include_icd9=include_icd9, first_match=first_match
+                include_icd9=include_icd9, first_incident=first_incident
             )
 
         if (df is not None) and (not df.empty):
@@ -161,6 +166,7 @@ class GetEventData:
         df = df[~df[cc.date + '_excl'].isna()]
         df['date_diff'] = (df[cc.date + '_excl'] - df[cc.date]).dt.days
         # check each date with each exclusion date
+        filtered_dfs = []
         for excl_event in event.exclusion_events:
             excl_df = df[df[cc.event_id + '_excl'] == excl_event.id]
             if event.exclusion_period is None and excl_event.period is None:
@@ -170,13 +176,25 @@ class GetEventData:
                 max_t = excl_event.period.max_t if excl_event.period is not None else event.exclusion_period.max_t
                 excl_df = excl_df[(excl_df['date_diff']).between(min_t, max_t)]
             excl_df = excl_df[[cc.patient_id, cc.date]].drop_duplicates()
-            excl_df = excl_df.set_index([cc.patient_id, cc.date])
-            # remove from all data excluded patients+dates
-            df = df.set_index([cc.patient_id, cc.date])
-            df = df[~df.index.isin(excl_df.index)]
-            df = df.reset_index()
-            if df.empty:
-                break
+            filtered_dfs.append(excl_df)
+
+        # combine excluded events
+        excl_df = filtered_dfs[0]
+        if len(filtered_dfs) > 1:
+            # check inclusion mode and apply it
+            if event.exclusion_mode == AttributeMode.any:
+                excl_df = pd.concat(filtered_dfs).drop_duplicates()
+            elif event.exclusion_mode == AttributeMode.all:
+                for curr_df in filtered_dfs[1:]:
+                    excl_df = excl_df.merge(curr_df, on=[cc.patient_id, cc.date], how='inner')
+            else:
+                raise ValueError(f'Invalid exclusion mode: {event.exclusion_mode}')
+
+        excl_df = excl_df.set_index([cc.patient_id, cc.date])
+        # remove from all data excluded patients+dates
+        df = df.set_index([cc.patient_id, cc.date])
+        df = df[~df.index.isin(excl_df.index)]
+        df = df.reset_index()
 
         if (df is not None and not df.empty) or (df_na is not None and not df_na.empty):
             df = pd.concat([df, df_na])
@@ -197,6 +215,7 @@ class GetEventData:
 
         df = df.merge(having_df, on=cc.patient_id, suffixes=('', '_having'))
         df['date_diff'] = (df[cc.date + '_having'] - df[cc.date]).dt.days
+        filtered_dfs = []
         for having_event in event.having_events:
             having_df = df[df[cc.event_id + '_having'] == having_event.id]
             if event.having_period is None and having_event.period is None:
@@ -206,13 +225,25 @@ class GetEventData:
                 max_t = having_event.period.max_t if having_event.period is not None else event.having_period.max_t
                 having_df = having_df[having_df['date_diff'].between(min_t, max_t)]
             having_df = having_df[[cc.patient_id, cc.date]].drop_duplicates()
-            having_df = having_df.set_index([cc.patient_id, cc.date])
-            # remove from all data excluded patients+dates
-            df = df.set_index([cc.patient_id, cc.date])
-            df = df[df.index.isin(having_df.index)]
-            df = df.reset_index()
-            if df.empty:
-                break
+            filtered_dfs.append(having_df)
+
+        # combine having events
+        having_df = filtered_dfs[0]
+        if len(filtered_dfs) > 1:
+            # check inclusion mode and apply it
+            if event.inclusion_mode == AttributeMode.any:
+                having_df = pd.concat(filtered_dfs).drop_duplicates()
+            elif event.inclusion_mode == AttributeMode.all:
+                for curr_df in filtered_dfs[1:]:
+                    having_df = having_df.merge(curr_df, on=[cc.patient_id, cc.date], how='inner')
+            else:
+                raise ValueError(f'Invalid inclusion mode: {event.inclusion_mode}')
+
+        having_df = having_df.set_index([cc.patient_id, cc.date])
+        # take only having patients+dates
+        df = df.set_index([cc.patient_id, cc.date])
+        df = df[df.index.isin(having_df.index)]
+        df = df.reset_index()
 
         df = df.drop(
             columns=[cc.date + '_having', cc.event_id + '_having', 'date_diff']
@@ -223,16 +254,15 @@ class GetEventData:
     def __filter_attribute_evens(self, df: pd.DataFrame, event: Event) -> Optional[pd.DataFrame]:
         self.logger.debug(f'Filter attribute events for {event.id}')
 
-        self.logger.debug(f'exclude patients with {[e.id for e in event.exclusion_events]} '
-                          f'within {event.exclusion_period} days')
         if event.exclusion_events:
+            self.logger.debug(f'exclude patients with {[e.id for e in event.exclusion_events]} '
+                              f'within {event.exclusion_period} days')
             excl_df = self.__get_attribute_events(df, event, exclude=True)
             df = self.__filter_excluded_events(df, excl_df, event)
 
-        self.logger.debug(f'Filter patients with {event.having_events} '
-                          f'within {event.having_period} days')
-
         if event.having_events:
+            self.logger.debug(f'Filter patients with {event.having_events} '
+                              f'within {event.having_period} days')
             having_df = self.__get_attribute_events(df, event, exclude=False)
             df = self.__filter_having_events(df, having_df, event)
         return df

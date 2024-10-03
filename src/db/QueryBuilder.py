@@ -123,7 +123,9 @@ def compose_date_patient_condition(patients_info: list, date_column: str, table:
 
 
 def get_code_info(codes: list, table: str, columns: list, include_subcodes: bool = False,
-                  patients_info: Optional[list] = None, first_match=False) -> str:
+                  patients_info: Optional[list] = None, first_incident=False, num_value: str = None,
+                  text_value: str = None
+                  ) -> str:
     # select column expression
     request_columns = []
     for c in columns:
@@ -134,11 +136,13 @@ def get_code_info(codes: list, table: str, columns: list, include_subcodes: bool
         request_columns.append(c)
 
     # group by expression
-    if first_match and cc.date in columns:
-        request_date_column = f'{table}.{cc.date}'
-        request_columns.remove(request_date_column)
-        request_columns.append(f'min({request_date_column}) as {cc.date}')
-        group_by_expr = f'group by {",".join(request_columns[:-1])}'
+    if first_incident and cc.date in columns:
+        date_column = f'{table}.{cc.date}'
+        code_column = f'{table}.{cc.code}'
+        patient_column = f'{table}.{cc.patient_id}'
+        request_columns.remove(date_column)
+        request_columns.append(f'min({date_column}) as {cc.date}')
+        group_by_expr = f'group by {",".join([patient_column, code_column])}'
     else:
         group_by_expr = ''
     columns_expr = SqlUtil.selected_columns_expr(request_columns)
@@ -160,8 +164,15 @@ def get_code_info(codes: list, table: str, columns: list, include_subcodes: bool
         codes_condition = SqlUtil.like_expression(request_code_column, codes) if include_subcodes else \
             SqlUtil.in_expression(request_code_column, codes)
 
+    # values conditions for labs and vitals
+    values_condition = None
+    if num_value is not None:
+        values_condition = f'{cc.num_value}{num_value}'
+    elif text_value is not None:
+        values_condition = f'{cc.text_value}="{text_value}"'
+
     # request body
-    cond_list = [codes_condition, date_patient_condition]
+    cond_list = [codes_condition, date_patient_condition, values_condition]
     where = ' and '.join([f"({x})" for x in cond_list if x is not None])
     where_expr = f'where {where}' if len(where) > 0 else ''
 
@@ -169,13 +180,3 @@ def get_code_info(codes: list, table: str, columns: list, include_subcodes: bool
 
     return request
 
-
-def request_patient_codes_to_date(date_patient_dict: dict, table_name: str, columns: list, date_column: str) -> str:
-    columns_expr = SqlUtil.selected_columns_expr(columns)
-    where_expr = [f'({date_column} <= {d} and {SqlUtil.in_expression(cc.patient_id, p)})'
-                  for d, p in date_patient_dict.items()]
-    where_expr = ' OR '.join(where_expr)
-    if len(where_expr) > 0:
-        where_expr = f'where {where_expr}'
-    request = f"select {columns_expr} from {table_name} {where_expr}"
-    return request
