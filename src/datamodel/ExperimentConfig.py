@@ -27,8 +27,8 @@ class AttributeExperimentEvent(DataClassJSONMixin):
 
 @dataclass(frozen=True)
 class ExperimentEvent(DataClassJSONMixin):
-    id: str
-    category: str
+    id: str = None
+    category: str = None
     name: str = None
     codes: list = field(default_factory=list)
     num_value: str = None
@@ -72,7 +72,7 @@ class MatchMode(Enum):
 
 @dataclass(frozen=True)
 class ExperimentLevel(DataClassJSONMixin):
-    level: int
+    level: int = -1
     name: str = None
     period: ExperimentTimeInterval = None
     events: list[ExperimentEvent] = field(default_factory=list[ExperimentEvent])
@@ -83,7 +83,6 @@ class ExperimentLevel(DataClassJSONMixin):
 class ExperimentConfig(DataClassJSONMixin):
     name: str = None
     levels: list[ExperimentLevel] = field(default_factory=list[ExperimentLevel])
-    comorbidity_scores: list[str] = field(default_factory=list[str])
     outcome_dir: str = None
     time_frame: Optional[ExperimentTimeFrame] = None
 

@@ -15,7 +15,7 @@ from src.usecase.DownloadTnxDataset import DownloadTnxDataset
 from src.usecase.FindEventsChain import FindEventsChain
 from src.usecase.FindPatients import FindPatients
 from src.usecase.ParseDataDictionary import ParseDataDictionary
-from src.usecase.ReadChainConfig import ReadChainConfig
+from src.usecase.StudyConfigReader import StudyConfigReader
 from src.util.ConcurrentUtil import ConcurrentUtil
 from src.util.FileProvider import FileProvider
 
@@ -74,7 +74,7 @@ def run_study(db_name: str, out_dir: str, study_list: list, local_db: bool = Tru
 
     for config_file_name in study_list:
         logger.debug(f'RUN CONFIG {config_file_name}')
-        study_config = ReadChainConfig().execute(config_file_name)
+        study_config = StudyConfigReader().read(config_file_name)
         create_study_outcome_file_structure(study_config)
 
         patient_groups = FindPatients(patient_repo, event_repo).execute(study_config, include_icd9)
@@ -91,6 +91,15 @@ def run_study(db_name: str, out_dir: str, study_list: list, local_db: bool = Tru
 
     logger.debug('======Finish Study Data Selection======')
 
+
+def validate_study(study_list: list):
+    logger.debug('======Run Study Validation======')
+    for config_file_name in study_list:
+        logger.debug(f'Validate config {config_file_name}')
+        if StudyConfigReader().validate(config_file_name):
+            logger.info(f'Config {config_file_name} is correct')
+
+    logger.debug('======Study Validation is Finished======')
 
 def download_dataset(url: str, archive: str):
     logger.debug(f'Download dataset {url} to {archive}')
