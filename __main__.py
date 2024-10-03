@@ -35,7 +35,7 @@ def runner(command: str, **kwargs):
 
 
 @click.group(context_settings=CONTEXT_SETTINGS)
-@click.version_option(version='1.0.0')
+@click.version_option(version='1.1.0')
 def run():
     pass
 
