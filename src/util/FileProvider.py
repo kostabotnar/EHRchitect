@@ -37,10 +37,6 @@ class FileProvider(object):
         return self.data_path / "datadictionary.csv"
 
     @property
-    def tnx_data_map_file(self) -> Path:
-        return self.data_path / "tnx_data_model_map.csv"
-
-    @property
     def code_map_table_file(self) -> str:
         return str(self.data_path / "icd9_map_icd10.csv")
 
