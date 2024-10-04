@@ -23,7 +23,7 @@ class TnxAdapter(AbstractDataAdapter):
         conversion_map = pd.read_csv(self.fp.data_path / self.data_map_file)
         tnx_files = conversion_map[MapColumns.tnx_file].unique().tolist()
 
-        src_is_zip = src_path[-4:] == '.zip'
+        src_is_zip = src_path.name.endswith('.zip')
         if src_is_zip:
             src_path = self.extract_files_from_zip_async(src_path, tnx_files)
 
