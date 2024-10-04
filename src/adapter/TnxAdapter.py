@@ -52,13 +52,13 @@ class TnxAdapter(AbstractDataAdapter):
             # convert years of birth and death to datetime format
             df[cc_cols.date_of_birth] = pd.to_datetime(df[cc_cols.date_of_birth], format='%Y')
             df[cc_cols.date_of_death] = pd.to_datetime(df[cc_cols.date_of_death], format='%Y%m') + pd.offsets.MonthEnd()
+            # drop NA in date of birth
+            df = df.dropna(subset=[cc_cols.date_of_birth])
         else:
             table_name = table_map[MapColumns.table].tolist()[0]
             date_columns = [c for c in self.get_tnx_table_date_columns(table_name)]
             for c in date_columns:
                 df[c] = pd.to_datetime(df[c], format='%Y%m%d')
-        # drop NA in date of birth
-        df = df.dropna(subset=[cc_cols.date_of_birth])
         # save to a new CSV file
         out_file_name = table_map[MapColumns.file].tolist()[0]
         if not dest_path.exists():
