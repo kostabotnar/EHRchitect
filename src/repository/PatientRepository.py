@@ -21,7 +21,7 @@ class PatientRepository(BaseDbRepository):
         return df
 
     def get_dead_patients(
-            self, columns: Optional[list] = None, date_patient_map: Optional[dict] = None
+            self, columns: Optional[list] = None, date_patient_map: Optional[list] = None
     ) -> Optional[pd.DataFrame]:
         self.logger.debug(f'get_dead_patients: columns={columns}, '
                           f'date_patient_map length = {len(date_patient_map)}')

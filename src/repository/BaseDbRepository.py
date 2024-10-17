@@ -18,31 +18,8 @@ class BaseDbRepository(metaclass=ABCMeta):
         self.logger = logging.getLogger(type(self).__name__)
         self.db_manager = db_manager
 
-    def _get_codes_info(self, event: Event, columns: list, date_patient_map: Optional[dict] = None,
+    def _get_codes_info(self, event: Event, columns: list, date_patient_map: Optional[list] = None,
                         include_icd9: bool = False, first_incident: bool = False) -> Optional[pd.DataFrame]:
-        """
-        Get codes info
-        Codes can have two formats:
-        plain format (e.g. 'T31.2') means only exactly matched codes will be selected
-        regex format (e.g. 'T31.2*') means all codes started from 'T31.2' will be selected (e.g. 'T31.2','T31.23' etc.)
-        negative format (e.g. '~T31.2') means all codes except 'T31.2' will be selected
-        All codes will be converted to its bases.
-        For example:
-        input codes ['T31', 'T31.3*']
-        next codes will be selected ['T31','T31.3','T31.30','T31.31','T31.32','T31.33']
-        (no other codes started from 'T31.3' exist)
-        Then obtained codes will be converted to ['T31', 'T31.3']
-        where 'T31.3' will contain all items of ['T31.3','T31.30','T31.31','T31.32','T31.33']
-        :param event: event object with parameters to search records
-        :param columns: list of columns to request
-        :param date_patient_map: map of (start_date, end_date) on patients ids to get codes for
-        :param include_icd9: default is False. If True than for all ICD10 code their ICD9 analogs will be found and
-        ignoring this parameter
-        their info will be added to the result. In the end all ICD9 codes will be converted to the corresponded ICD10.
-        WARNING!!! Initial ICD9 codes will not be converted to ICD10 during the event search
-        :param first_incident: get only first (earliest) fitted record for each patient
-        :return: dataframe from table with columns or None
-        """
         self.logger.debug(f'_get_codes_info: codes = {event.codes}')
 
         # define counter column if it necessary
@@ -134,7 +111,7 @@ class BaseDbRepository(metaclass=ABCMeta):
 
         return icd9_df
 
-    def _group_patient_params(self, date_patient_map: dict, cohort_size: int = 10_000) -> list:
+    def _group_patient_params(self, date_patient_map: list, cohort_size: int = 10_000) -> list:
         """
         create list of list of tuples with min and max date for each patients' list.
         Each list of tuples won't be lower than cohort size
@@ -146,22 +123,18 @@ class BaseDbRepository(metaclass=ABCMeta):
         res = []
         counter = 0
         curr_patients = []
-        for dates, patients in date_patient_map.items():
-            min_date = None
-            max_date = None
-            if dates is not None:
-                if dates[0] is not None:
-                    min_date = dates[0].strftime('%Y-%m-%d')
-                if dates[1] is not None:
-                    max_date = dates[1].strftime('%Y-%m-%d')
+        for record in date_patient_map:
+            min_date = None if record['start_date'] is None else record['start_date'].strftime('%Y-%m-%d')
+            max_date = None if record['end_date'] is None else record['end_date'].strftime('%Y-%m-%d')
 
-            if len(patients) > 1.5 * cohort_size:
+            patients_number = len(record['patients'])
+            if patients_number > 1.5 * cohort_size:
                 # separate patients for the same time period
-                res.append([(min_date, max_date, patients[i:i + cohort_size])
-                            for i in range(0, len(patients), cohort_size)])
+                res.append([(min_date, max_date, record['patients'][i:i + cohort_size])
+                            for i in range(0, patients_number, cohort_size)])
             else:
-                curr_patients.append((min_date, max_date, patients))
-                counter += len(patients)
+                curr_patients.append((min_date, max_date, record['patients']))
+                counter += patients_number
                 if counter >= cohort_size:
                     res.append(curr_patients)
                     curr_patients = []

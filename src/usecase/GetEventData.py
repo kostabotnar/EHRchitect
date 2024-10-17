@@ -24,7 +24,7 @@ class GetEventData:
 
         self.logger.debug('Created')
 
-    def execute(self, level: ExperimentLevel, columns: list, date_patient_map: Optional[dict],
+    def execute(self, level: ExperimentLevel, columns: list, date_patient_map: Optional[list],
                 etf: Optional[ExperimentTimeFrame], include_icd9: bool = True, first_incident: bool = False):
         events = [Event.from_experiment_event(e) for e in level.events]
 
@@ -51,43 +51,41 @@ class GetEventData:
         return res_data
 
     def __adjust_event_period(
-            self, event: Event, date_patient_map: Optional[dict], etf: ExperimentTimeFrame
-    ) -> Optional[dict]:
+            self, event: Event, date_patient_map: Optional[list], etf: ExperimentTimeFrame
+    ) -> Optional[list]:
         self.logger.debug(
             f'Adjusting event period for event: {event}, '
             f'date_patient_map size {0 if date_patient_map is None else len(date_patient_map)}, '
             f'study time frame: {etf}')
-        new_map = dict()
-        if date_patient_map is None:
-            return None
-        for dates, patients in date_patient_map.items():
-            if dates is None:
-                new_map[None] = patients
-                continue
-            if event.period is None:
-                new_map[(dates[0], dates[1])] = patients
-                continue
+        if event.period is None:
+            return date_patient_map
+        res_list = []
+        for record in date_patient_map:
+            if record['date'] is None:
+                start_date = None
             else:
-                delta = timedelta(days=event.period.min_t) if event.period.min_t is not None else timedelta(days=0)
-                start_date = dates[0] + delta
-                delta = timedelta(days=event.period.max_t) if event.period.max_t is not None else timedelta(
-                    days=365_000)
-                end_date = dates[1] + delta
+                days = event.period.min_t if event.period.min_t is not None else -365_000
+                start_date = (record['date'] + timedelta(days=days))
+            if record['date'] is None:
+                end_date = None
+            else:
+                days = event.period.max_t if event.period.max_t is not None else 365_000
+                end_date = (record['date'] + timedelta(days=days))
 
-                # filter by experiment time frame
-                if etf is not None:
-                    if etf.max_date is not None:
-                        max_d = datetime.strptime(str(etf.max_date), '%Y-%m-%d')
-                        end_date = min(end_date, max_d)
-                    if etf.min_date is not None:
-                        min_d = datetime.strptime(str(etf.min_date), '%Y-%m-%d')
-                        start_date = max(start_date, min_d)
+            # filter by experiment time frame
+            if etf is not None:
+                if etf.max_date is not None:
+                    max_d = datetime.strptime(str(etf.max_date), '%Y-%m-%d')
+                    end_date = min(end_date, max_d) if end_date is not None else max_d
+                if etf.min_date is not None:
+                    min_d = datetime.strptime(str(etf.min_date), '%Y-%m-%d')
+                    start_date = max(start_date, min_d) if start_date is not None else min_d
 
-                new_map[(start_date, end_date)] = patients
+            res_list.append({'start_date': start_date, 'end_date': end_date, 'date': record['date'],
+                             'patients': record['patients']})
+        return res_list
 
-        return new_map
-
-    def __request_event_info(self, event: Event, columns: list, date_patient_map: Optional[dict] = None,
+    def __request_event_info(self, event: Event, columns: list, date_patient_map: Optional[list] = None,
                              include_icd9: bool = True, first_incident: bool = False) -> Optional[pd.DataFrame]:
         df = None
         if event.category == EventCategory.Patient:
@@ -129,11 +127,12 @@ class GetEventData:
         else:
             gdf['start_date'] = None
             gdf['end_date'] = gdf[cc.date]  # todo make it None for the default case
-        date_patient_map = {(row['start_date'], row["end_date"]): row[cc.patient_id]
-                            for i, row in gdf.iterrows()}
+        date_patient_map = [{'start_date': row['start_date'], "end_date": row["end_date"], 'date': row[cc.date],
+                             'patients': row[cc.patient_id]}
+                            for i, row in gdf.iterrows()]
         # get all patients with attribute events
         params = [(e, [cc.patient_id, cc.date],
-                   self.__make_date_patient_map_for_event(e, df, date_patient_map),
+                   self.__build_date_patient_map_for_event(e, df, date_patient_map),
                    True, False)
                   for e in events]
         res_dfs = ConcurrentUtil.do_async_job(self.__request_event_info, params)
@@ -142,14 +141,15 @@ class GetEventData:
         res_df = pd.concat(res_dfs) if res_dfs else None
         return res_df
 
-    def __make_date_patient_map_for_event(self, event: Event, df: pd.DataFrame, common_map: dict) -> dict:
+    def __build_date_patient_map_for_event(self, event: Event, df: pd.DataFrame, common_map: list) -> list:
         if event.period is None:
             return common_map
         gdf = df.groupby(cc.date)[cc.patient_id].apply(list).reset_index()
         gdf['start_date'] = gdf[cc.date] + timedelta(days=event.period.min_t)
         gdf['end_date'] = gdf[cc.date] + timedelta(days=event.period.max_t)
-        date_patient_map = {(row['start_date'], row["end_date"]): row[cc.patient_id]
-                            for i, row in gdf.iterrows()}
+        date_patient_map = [{'start_date': row['start_date'], "end_date": row["end_date"], 'date': row[cc.date],
+                             'patients': row[cc.patient_id]}
+                            for i, row in gdf.iterrows()]
         return date_patient_map
 
     def __filter_excluded_events(self, df: pd.DataFrame, excl_df: pd.DataFrame, event: Event) -> Optional[pd.DataFrame]:

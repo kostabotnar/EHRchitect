@@ -94,7 +94,7 @@ class FindEventsChain:
             # calc time interval for each patient for the next level
             if i < n_levels - 1:
                 next_level_dist = experiment_config.levels[i + 1].period
-                date_patient_map = self.__get_date_patient_map(df, next_level_dist, experiment_config.time_frame)
+                date_patient_map = self.__build_date_patient_map(df, next_level_dist, experiment_config.time_frame)
             # rename columns with level number
             curr_level_columns = [cc.get_column_at_level(c, curr_level_number) for c in df.columns if c != cc.patient_id]
             df.columns = [cc.patient_id] + curr_level_columns
@@ -131,7 +131,7 @@ class FindEventsChain:
                 file_name=file_name,
                 index=cc.patient_id)
 
-    def __get_events_data(self, level: ExperimentLevel, date_patient_map: Optional[dict] = None,
+    def __get_events_data(self, level: ExperimentLevel, date_patient_map: Optional[list] = None,
                           etf: ExperimentTimeFrame = None,
                           include_icd9: bool = True, first_incident: bool = False) -> Optional[pd.DataFrame]:
         self.logger.debug(f'__get_events_data: events={level.events}')
@@ -262,13 +262,15 @@ class FindEventsChain:
             df = df.set_index(index)
         self.__file_provider.save_dataframe_file(df=df, file_dir=file_dir, filename=file_name, file_format=file_format)
 
-    def __init_date_patient_map(self, etf: ExperimentTimeFrame, patients: list) -> dict:
+    def __init_date_patient_map(self, etf: ExperimentTimeFrame, patients: list) -> list:
         self.logger.debug('init experiment time frame')
         if etf is None:
-            return {None: set(patients)}
-        min_d = datetime.datetime.strptime(str(etf.min_date), '%Y-%m-%d') if etf.min_date is not None else None
-        max_d = datetime.datetime.strptime(str(etf.max_date), '%Y-%m-%d') if etf.max_date is not None else None
-        return {(min_d, max_d): set(patients)}
+            min_d = None
+            max_d = None
+        else:
+            min_d = None if etf.min_date is None else datetime.datetime.strptime(str(etf.min_date), '%Y-%m-%d')
+            max_d = None if etf.max_date is None else datetime.datetime.strptime(str(etf.max_date), '%Y-%m-%d')
+        return [{'start_date': min_d, 'end_date': max_d, 'date': None, 'patient': patients}]
 
     def __add_time_interval(
             self, event_dates: pd.Series, time_interval: Union[int, ExperimentTimeInterval, type(None)]
@@ -286,9 +288,9 @@ class FindEventsChain:
             end_dates = event_dates + timedelta(days=time_interval)
         return event_dates, end_dates
 
-    def __get_date_patient_map(self, df: pd.DataFrame, time_interval: Union[int, ExperimentTimeInterval, type(None)],
-                               etf: ExperimentTimeFrame) -> dict:
-        self.logger.debug(f'__get_time_interval: t={time_interval} time frame = {etf}')
+    def __build_date_patient_map(self, df: pd.DataFrame, time_interval: Union[int, ExperimentTimeInterval, type(None)],
+                                 etf: ExperimentTimeFrame) -> list:
+        self.logger.debug(f'__build_date_patient_map: t={time_interval} time frame = {etf}')
 
         df = df.groupby([cc.date])[cc.patient_id].apply(list).reset_index()
 
@@ -306,13 +308,19 @@ class FindEventsChain:
             df[col_end_date] = datetime.datetime.now()
 
         # filter by experiment time frame
-        if etf is not None and etf.max_date is not None:
-            max_d = datetime.datetime.strptime(str(etf.max_date), '%Y-%m-%d')
-            df[col_end_date] = [min(v, max_d) for v in df[col_end_date]]
+        if etf is not None:
+            if etf.max_date is not None:
+                max_d = datetime.datetime.strptime(str(etf.max_date), '%Y-%m-%d')
+                df[col_end_date] = [min(v, max_d) for v in df[col_end_date]]
+            if etf.min_date is not None:
+                min_d = datetime.datetime.strptime(str(etf.min_date), '%Y-%m-%d')
+                df[col_start_date] = [max(v, min_d) for v in df[col_start_date]]
 
-        date_patient_map = {
-            (row[col_start_date], row[col_end_date], row[cc.date]): set(row[cc.patient_id])
-            for i, row in df.iterrows()}
+        date_patient_map = [
+            {'start_date': row[col_start_date], 'end_date': row[col_end_date], 'date': row[cc.date],
+             'patients':row[cc.patient_id]}
+            for i, row in df.iterrows()
+        ]
         return date_patient_map
 
     def __merge_levels(self, index_df: pd.DataFrame, target_df: pd.DataFrame, index_level: ExperimentLevel,
