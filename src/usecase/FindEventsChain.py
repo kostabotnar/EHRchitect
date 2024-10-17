@@ -270,7 +270,7 @@ class FindEventsChain:
         else:
             min_d = None if etf.min_date is None else datetime.datetime.strptime(str(etf.min_date), '%Y-%m-%d')
             max_d = None if etf.max_date is None else datetime.datetime.strptime(str(etf.max_date), '%Y-%m-%d')
-        return [{'start_date': min_d, 'end_date': max_d, 'date': None, 'patient': patients}]
+        return [{'start_date': min_d, 'end_date': max_d, 'date': None, 'patients': patients}]
 
     def __add_time_interval(
             self, event_dates: pd.Series, time_interval: Union[int, ExperimentTimeInterval, type(None)]
