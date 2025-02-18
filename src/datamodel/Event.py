@@ -65,7 +65,7 @@ class Event:
     """
     Patient event for network building.
     """
-    id: str
+    name: str
     category: EventCategory
     codes: Optional[list] = None
     num_value: Optional[str] = None
@@ -91,12 +91,12 @@ class Event:
 
     @staticmethod
     def from_experiment_event(experiment_event: ExperimentEvent) -> Optional[Event]:
-        id = experiment_event.id
+        name = experiment_event.name
         category = EventCategory.from_string(experiment_event.category)
         if category is None:
             raise ValueError(f'Unknown event category {experiment_event.category}')
         if not experiment_event.codes:
-            return Event(id=id, category=category, negation=experiment_event.negation)
+            return Event(name=name, category=category, negation=experiment_event.negation)
         codes = experiment_event.codes
         codes = [c.strip() for c in codes]
 
@@ -125,7 +125,7 @@ class Event:
         period = EventTimeInterval.from_experiment_event_period(experiment_event.period)
 
         event = Event(
-            id=id,
+            name=name,
             codes=codes,
             category=category,
             num_value=experiment_event.num_value,

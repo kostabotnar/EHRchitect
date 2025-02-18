@@ -27,7 +27,6 @@ class AttributeExperimentEvent(DataClassJSONMixin):
 
 @dataclass(frozen=True)
 class ExperimentEvent(DataClassJSONMixin):
-    id: str = None
     category: str = None
     name: str = None
     codes: list = field(default_factory=list)

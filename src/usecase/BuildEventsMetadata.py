@@ -47,14 +47,13 @@ class BuildEventsMetadata:
                     sub_df = pd.DataFrame(sub_dict)
 
                 sub_df[cc.category] = event.category.lower()
-                sub_df[cc.event_id] = event.id
                 sub_df[cc.event_name] = event.name
                 sub_df[cc.level] = level.name
                 res_dfs.append(sub_df)
 
         df = pd.concat(res_dfs)
 
-        df = df[[cc.code, cc.category, cc.code_description, cc.event_name, cc.event_id, cc.level]]. \
+        df = df[[cc.code, cc.category, cc.code_description, cc.event_name, cc.level]]. \
             drop_duplicates()
 
         return df

@@ -50,7 +50,6 @@ class CommonColumns:
     icd10_code = 'icd10_code'
     description = 'description'
     # chain result
-    event_id = 'event_id'
     event_name = 'event_name'
     category = 'category'
     level = 'level'

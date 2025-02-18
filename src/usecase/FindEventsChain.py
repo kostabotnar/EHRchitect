@@ -157,17 +157,17 @@ class FindEventsChain:
         index_df = index_df[index_df[cc.patient_id].isin(target_df[cc.patient_id])]
 
         col_target_date = cc.get_column_at_level(cc.date, target_level.level)
-        col_target_event_id = cc.get_column_at_level(cc.event_id, target_level.level)
+        col_target_event = cc.get_column_at_level(cc.event_name, target_level.level)
         col_target_code = cc.get_column_at_level(cc.code, target_level.level)
 
         col_index_date = cc.get_column_at_level(cc.date, index_level.level)
-        col_index_event_id = cc.get_column_at_level(cc.event_id, index_level.level)
+        col_index_event = cc.get_column_at_level(cc.event_name, index_level.level)
         col_index_code = cc.get_column_at_level(cc.code, index_level.level)
 
         if target_level.match_mode == MatchMode.first_match:
             # take only the earliest target records of each patient+event+code
             target_df = target_df.groupby(
-                [cc.patient_id, col_target_event_id, col_target_code], as_index=False
+                [cc.patient_id, col_target_event, col_target_code], as_index=False
             )[col_target_date].min()
 
         index_cols = index_df.columns.tolist()
@@ -202,7 +202,7 @@ class FindEventsChain:
 
             if target_level.match_mode == MatchMode.first_match:
                 # get the earliest index date
-                group_col = [cc.patient_id, col_index_event_id, col_index_code, col_target_event_id,
+                group_col = [cc.patient_id, col_index_event, col_index_code, col_target_event,
                              col_target_code]
                 curr_index_df = curr_index_df[
                     curr_index_df.index == curr_index_df.groupby(group_col)[col_index_date].transform('idxmin')]
@@ -221,7 +221,7 @@ class FindEventsChain:
             f'period={end_level.period}'
         )
         col_code = cc.get_column_at_level(cc.code, end_level.level)
-        col_target_event_id = cc.get_column_at_level(cc.event_id, end_level.level)
+        col_target_event = cc.get_column_at_level(cc.event_name, end_level.level)
         col_distance = cc.get_column_at_level(cc.time_interval, start_level.level)
         col_start_date = cc.get_column_at_level(cc.date, start_level.level)
         col_end_date = cc.get_column_at_level(cc.date, end_level.level)
@@ -235,7 +235,7 @@ class FindEventsChain:
         df_res = []
         for event in end_level.events:
             period = event.period if event.period is not None else end_level.period
-            df_event = df[df[col_target_event_id] == event.id]
+            df_event = df[df[col_target_event] == event.name]
             if period is None:
                 event_time_mask = time_mask & df_event[col_distance] >= 0
             elif type(period) is ExperimentTimeInterval:

@@ -2,7 +2,6 @@ from typing import Optional
 
 import pandas as pd
 
-from src.datamodel.DataColumns import CommonColumns as cc
 from src.repository.BaseDbRepository import BaseDbRepository
 from src.util.ConcurrentUtil import ConcurrentUtil
 

@@ -36,7 +36,7 @@ class BaseDbRepository(metaclass=ABCMeta):
         df = pd.concat(res_dfs) \
             if res_dfs and any([x is not None for x in res_dfs]) \
             else None
-        self.logger.debug(f'return codes info for {event.id} with {df.shape} records')
+        self.logger.debug(f'return codes info for {event.name} with {df.shape} records')
         return df
 
     def __get_code_info_job(self, codes: Optional[list], table_name: str, columns: list, patients_info: list,

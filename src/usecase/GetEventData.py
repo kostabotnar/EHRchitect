@@ -107,10 +107,10 @@ class GetEventData:
             )
 
         if (df is not None) and (not df.empty):
-            df[cc.event_id] = event.id
+            df[cc.event_name] = event.name
             if event.has_attribute_events():
                 df = self.__filter_attribute_evens(df, event)
-        self.logger.debug(f'Returning event info for event: {event.id}, data size: {0 if df is None else df.shape}')
+        self.logger.debug(f'Returning event info for event: {event.name}, data size: {0 if df is None else df.shape}')
         return df
 
     def __get_attribute_events(self, df: pd.DataFrame, event: Event, exclude: bool = False) -> Optional[pd.DataFrame]:
@@ -168,7 +168,7 @@ class GetEventData:
         # check each date with each exclusion date
         filtered_dfs = []
         for excl_event in event.exclusion_events:
-            excl_df = df[df[cc.event_id + '_excl'] == excl_event.id]
+            excl_df = df[df[cc.event_name + '_excl'] == excl_event.name]
             if event.exclusion_period is None and excl_event.period is None:
                 excl_df = excl_df[excl_df['date_diff'] < 0]
             else:
@@ -202,7 +202,7 @@ class GetEventData:
             return None
 
         df = df.drop(
-            columns=[cc.date + '_excl', cc.event_id + '_excl', 'date_diff']).drop_duplicates()
+            columns=[cc.date + '_excl', cc.event_name + '_excl', 'date_diff']).drop_duplicates()
         self.logger.debug(f'Excluded {rows_count - df.shape[0]} records')
         return df
 
@@ -217,7 +217,7 @@ class GetEventData:
         df['date_diff'] = (df[cc.date + '_having'] - df[cc.date]).dt.days
         filtered_dfs = []
         for having_event in event.having_events:
-            having_df = df[df[cc.event_id + '_having'] == having_event.id]
+            having_df = df[df[cc.event_name + '_having'] == having_event.name]
             if event.having_period is None and having_event.period is None:
                 having_df = having_df[having_df['date_diff'] < 0]
             else:
@@ -246,16 +246,16 @@ class GetEventData:
         df = df.reset_index()
 
         df = df.drop(
-            columns=[cc.date + '_having', cc.event_id + '_having', 'date_diff']
+            columns=[cc.date + '_having', cc.event_name + '_having', 'date_diff']
         ).drop_duplicates()
         self.logger.debug(f'Excluded {rows_count - df.shape[0]} records')
         return df
 
     def __filter_attribute_evens(self, df: pd.DataFrame, event: Event) -> Optional[pd.DataFrame]:
-        self.logger.debug(f'Filter attribute events for {event.id}')
+        self.logger.debug(f'Filter attribute events for {event.name}')
 
         if event.exclusion_events:
-            self.logger.debug(f'exclude patients with {[e.id for e in event.exclusion_events]} '
+            self.logger.debug(f'exclude patients with {[e.name for e in event.exclusion_events]} '
                               f'within {event.exclusion_period} days')
             excl_df = self.__get_attribute_events(df, event, exclude=True)
             df = self.__filter_excluded_events(df, excl_df, event)

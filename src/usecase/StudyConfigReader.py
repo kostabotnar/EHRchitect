@@ -48,8 +48,8 @@ class StudyConfigReader:
                 self.logger.error(f'Level {l.level if l.name is None else l.name} in config file: {config_file_name} '
                                   f'should have at least one event')
                 return False
-            if any([e.id is None or e.category is None for e in l.events]):
+            if any([e.name is None or e.category is None for e in l.events]):
                 self.logger.error(f'Invalid event in level {l.level} in config file: {config_file_name}. '
-                                  f'Event should have id and category')
+                                  f'Event should have name and category')
                 return False
         return True
