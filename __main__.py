@@ -11,6 +11,7 @@ def runner(command: str, **kwargs):
         validate(command, **kwargs)
         if command == Command.create_new_db:
             Application.create_db(db_name=kwargs[opt.database],
+                                  db_type=kwargs[opt.db_type],
                                   url=kwargs[opt.url],
                                   archive=kwargs[opt.archive],
                                   local_access=kwargs[opt.local_access],
@@ -19,6 +20,7 @@ def runner(command: str, **kwargs):
                                   new_db=True)
         elif command == Command.append_data:
             Application.create_db(db_name=kwargs[opt.database],
+                                  db_type=kwargs[opt.db_type],
                                   url=kwargs[opt.url],
                                   archive=kwargs[opt.archive],
                                   local_access=kwargs[opt.local_access],
