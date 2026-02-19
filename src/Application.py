@@ -28,10 +28,13 @@ def create_db(db_name: str, db_type: str, url: str, archive: str, local_access: 
     logger.debug('======Start======')
     if (url is not None) and (not download_dataset(url, archive)):
         return
+
     data_path = ConvertDataModel().execute(archive, 'tnx')
+
     if db_type == 'FILE':
         logger.info(f"The file database was created in {data_path}")
         logger.debug('======Finish======')
+        return
 
     tables_data = ParseDataDictionary().execute(data_path)
 
