@@ -24,11 +24,15 @@ logging.config.fileConfig(fp.log_config_file)
 logger = logging.getLogger('Main')
 
 
-def create_db(db_name: str, url: str, archive: str, local_access: bool, new_db: bool, set_index: bool, drop_csv: bool):
+def create_db(db_name: str, db_type: str, url: str, archive: str, local_access: bool, new_db: bool, set_index: bool, drop_csv: bool):
     logger.debug('======Start======')
     if (url is not None) and (not download_dataset(url, archive)):
         return
     data_path = ConvertDataModel().execute(archive, 'tnx')
+    if db_type == 'FILE':
+        logger.info(f"The file database was created in {data_path}")
+        logger.debug('======Finish======')
+
     tables_data = ParseDataDictionary().execute(data_path)
 
     app_config = init_app_config()

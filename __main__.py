@@ -43,6 +43,8 @@ def run():
 @run.command()
 @click.option(f'--{opt.database}',
               help='Name of the database to be created')
+@click.option(f'--{opt.db_type}', default='SQL',
+              help='Type of the database to be created. Can be SQL or FILE. Default is SQL. FILE means parquet files creation without the following SQL database')
 @click.option(f'--{opt.url}',
               default=None,
               help='URL obtained from the TriNetX export option. '

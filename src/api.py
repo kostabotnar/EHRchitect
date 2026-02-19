@@ -7,6 +7,7 @@ class Command:
 
 class Option:
     database = 'db'
+    db_type = 'db_type'
     study = 's'
     url = 'url'
     archive = 'arch'
@@ -31,11 +32,17 @@ def validate(command: str, **kwargs) -> bool:
 
 
 def validate_data_import(**kwargs) -> bool:
+    valid_db_type = kwargs[Option.db_type] == 'SQL' or kwargs[Option.db_type] == 'FILE'
     valid_url = kwargs[Option.url] is not None and len(kwargs[Option.url].strip()) > 0
     valid_archive = kwargs[Option.archive] is not None and len(kwargs[Option.archive].strip()) > 0
     if kwargs[Option.database] is not None and kwargs[Option.database].strip() == "":
         raise ValueError(
             f'Value Error: Invalid {Option.database} value: "{kwargs[Option.database]}"'
+        )
+    if not valid_db_type:
+        raise ValueError(
+            f'Value Error: {Option.db_type} should be "SQL" or "FILE". '
+            f'{Option.db_type} value: "{kwargs[Option.db_type]}. "'
         )
     if not valid_url and not valid_archive:
         raise ValueError(
