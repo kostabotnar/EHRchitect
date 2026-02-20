@@ -1,5 +1,8 @@
 import logging.config
 import shutil
+from pathlib import Path
+
+import pandas as pd
 
 from src.config.AppConfig import AppConfig
 from src.datamodel.ExperimentConfig import ExperimentConfig
@@ -32,6 +35,9 @@ def create_db(db_name: str, db_type: str, url: str, archive: str, local_access: 
     data_path = ConvertDataModel().execute(archive, 'tnx')
 
     if db_type == 'FILE':
+        for csv_file in Path(data_path).glob("*.csv"):
+            pd.read_csv(csv_file).to_parquet(csv_file.with_suffix('.parquet'))
+            csv_file.unlink()
         logger.info(f"The file database was created in {data_path}")
         logger.debug('======Finish======')
         return
