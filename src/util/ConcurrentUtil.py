@@ -1,6 +1,5 @@
 from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
 from concurrent.futures import as_completed
-from multiprocessing.pool import Pool
 
 
 class ConcurrentUtil:

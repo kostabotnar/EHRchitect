@@ -11,23 +11,27 @@ from src.util.FileProvider import FileProvider
 
 
 class BuildEventsMetadata:
-
     def __init__(self, cd_repo: CodeDescriptionRepository):
         self.logger = logging.getLogger(self.__class__.__name__)
         self.cd_repo = cd_repo
         self.fp = FileProvider()
 
     def execute(self, experiment_config: ExperimentConfig):
-        self.logger.debug(f'execute')
+        self.logger.debug("execute")
         codes_df = self.build_codes_metadata(experiment_config.levels)
-        file_dir, file_name = self.fp.events_metadata_file_location(experiment_config.outcome_dir)
+        file_dir, file_name = self.fp.events_metadata_file_location(
+            experiment_config.outcome_dir
+        )
         self.fp.save_dataframe_file(df=codes_df, file_dir=file_dir, filename=file_name)
 
     def build_codes_metadata(self, levels: list):
-        self.logger.debug('build_codes_metadata')
+        self.logger.debug("build_codes_metadata")
         events = [e for level in levels for e in level.events]
-        codes = [(c, EventCategory.from_string(e.category).value.code_systems)
-                 for e in events for c in e.codes]
+        codes = [
+            (c, EventCategory.from_string(e.category).value.code_systems)
+            for e in events
+            for c in e.codes
+        ]
 
         df = self.__get_code_metadata_job(codes)
         if df is None or df.empty:
@@ -40,9 +44,14 @@ class BuildEventsMetadata:
                 if event.negation:
                     sub_dict = {
                         cc.code: [
-                            CodeFormat.simple_to_negative(sub_df[cc.code].unique().tolist())],
-                        cc.description: [f"{CodeFormat.negation_word} "
-                                         f"[{'| '.join(sub_df[cc.code_description].unique().tolist())}]"]
+                            CodeFormat.simple_to_negative(
+                                sub_df[cc.code].unique().tolist()
+                            )
+                        ],
+                        cc.description: [
+                            f"{CodeFormat.negation_word} "
+                            f"[{'| '.join(sub_df[cc.code_description].unique().tolist())}]"
+                        ],
                     }
                     sub_df = pd.DataFrame(sub_dict)
 
@@ -54,19 +63,32 @@ class BuildEventsMetadata:
 
         df = pd.concat(res_dfs)
 
-        df = df[[cc.code, cc.category, cc.code_description, cc.event_name, cc.event_id, cc.level]]. \
-            drop_duplicates()
+        df = df[
+            [
+                cc.code,
+                cc.category,
+                cc.code_description,
+                cc.event_name,
+                cc.event_id,
+                cc.level,
+            ]
+        ].drop_duplicates()
 
         return df
 
     def __get_code_metadata_job(self, curr_codes: list):
         """curr_codes is a list of tuples (code, list of code systems)"""
-        self.logger.debug(f'get code metadata for codes {curr_codes}')
+        self.logger.debug(f"get code metadata for codes {curr_codes}")
         dfs = list()
         # process DEATH code
         if [c for c in curr_codes if c[0] == EventConstant.DEATH]:
             dfs.append(
-                pd.DataFrame({cc.code: [EventConstant.DEATH], cc.code_description: [EventConstant.DEATH]})
+                pd.DataFrame(
+                    {
+                        cc.code: [EventConstant.DEATH],
+                        cc.code_description: [EventConstant.DEATH],
+                    }
+                )
             )
             curr_codes = [c for c in curr_codes if c[0] != EventConstant.DEATH]
         # process all passed codes

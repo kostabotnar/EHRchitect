@@ -14,8 +14,8 @@ class ExperimentTimeFrame(DataClassJSONMixin):
 
 
 class AttributeEventMode(Enum):
-    any = 'any'
-    all = 'all'
+    any = "any"
+    all = "all"
 
 
 @dataclass(frozen=True)
@@ -44,21 +44,21 @@ class ExperimentEvent(DataClassJSONMixin):
 class ExperimentTimeInterval(DataClassJSONMixin):
     min_t: int
     max_t: int
-    unit: str = 'day'
+    unit: str = "day"
 
     def get_min_t_days(self):
-        if self.unit == 'month':
+        if self.unit == "month":
             min_t = self.min_t * 30
-        elif self.unit == 'year':
+        elif self.unit == "year":
             min_t = self.min_t * 365
         else:
             min_t = self.min_t
         return min_t
 
     def get_max_t_days(self):
-        if self.unit == 'month':
+        if self.unit == "month":
             max_t = self.max_t * 30
-        elif self.unit == 'year':
+        elif self.unit == "year":
             max_t = self.max_t * 365
         else:
             max_t = self.max_t
@@ -66,8 +66,8 @@ class ExperimentTimeInterval(DataClassJSONMixin):
 
 
 class MatchMode(Enum):
-    first_match = 'first_match'
-    all_matches = 'all_matches'
+    first_match = "first_match"
+    all_matches = "all_matches"
 
 
 @dataclass(frozen=True)
@@ -87,7 +87,7 @@ class ExperimentConfig(DataClassJSONMixin):
     time_frame: Optional[ExperimentTimeFrame] = None
 
     def __post_init__(self):
-        self.outcome_dir = None if self.name is None else self.name.replace('/', '_')
+        self.outcome_dir = None if self.name is None else self.name.replace("/", "_")
 
     def get_level_by_number(self, number: int) -> ExperimentLevel:
         return self.levels[number]

@@ -29,9 +29,9 @@ class DownloadTnxDataset:
         try:
             urlretrieve(url, filename, MyProgressBar())
         except HTTPError as e:
-            self.logger.error(f'Download URL error: {e}')
+            self.logger.error(f"Download URL error: {e}")
             return -1
         except URLError as e:
-            self.logger.error(f'Download URL error: {e}')
+            self.logger.error(f"Download URL error: {e}")
             return -1
         return None

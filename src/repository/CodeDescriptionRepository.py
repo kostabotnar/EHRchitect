@@ -4,13 +4,12 @@ from src.db.DatabaseManager import DatabaseManager
 
 
 class CodeDescriptionRepository:
-
     def __init__(self, db_manager: DatabaseManager):
         self.logger = logging.getLogger(type(self).__name__)
         self.db_manager = db_manager
 
     def get_code_description(self, codes: list):
-        self.logger.debug(f'get_code_description: codes={codes}')
+        self.logger.debug(f"get_code_description: codes={codes}")
         if len(codes) == 0:
             return None
 
@@ -21,5 +20,5 @@ class CodeDescriptionRepository:
         if df.empty:
             return None
         df = df.drop_duplicates()
-        df = df.fillna('No Description')
+        df = df.fillna("No Description")
         return df

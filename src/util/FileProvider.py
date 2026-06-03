@@ -48,30 +48,46 @@ class FileProvider(object):
         return self.result_path / filename
 
     def patients_metadata_file_location(self, dir_name: str) -> tuple:
-        return self.result_path / dir_name, 'patients.parquet'
+        return self.result_path / dir_name, "patients.parquet"
 
-    def get_transition_group_location(self, outcome_dir: str, end_level_number, group_number: int) -> tuple:
+    def get_transition_group_location(
+        self, outcome_dir: str, end_level_number, group_number: int
+    ) -> tuple:
         root = self.get_transitions_path(outcome_dir, end_level_number)
-        return root / f'group={group_number}', f'transition_{end_level_number - 1}_{end_level_number}.parquet'
+        return (
+            root / f"group={group_number}",
+            f"transition_{end_level_number - 1}_{end_level_number}.parquet",
+        )
 
-    def get_event_group_location(self, outcome_dir: str, level_number, group_number: int) -> tuple:
+    def get_event_group_location(
+        self, outcome_dir: str, level_number, group_number: int
+    ) -> tuple:
         root = self.get_events_path(outcome_dir, level_number)
-        return root / f'group={group_number}', f'event_{level_number}.parquet'
+        return root / f"group={group_number}", f"event_{level_number}.parquet"
 
     def get_events_path(self, outcome_dir: str, level_number: int) -> Path:
-        return self.result_path / outcome_dir / f'events/event_{level_number}.parquet'
+        return self.result_path / outcome_dir / f"events/event_{level_number}.parquet"
 
     def get_transitions_path(self, outcome_dir: str, end_level_number: int) -> Path:
-        return (self.result_path / outcome_dir / 'transitions' /
-                f'transition_{end_level_number - 1}_{end_level_number}.parquet')
+        return (
+            self.result_path
+            / outcome_dir
+            / "transitions"
+            / f"transition_{end_level_number - 1}_{end_level_number}.parquet"
+        )
 
-    def save_dataframe_file(self, df: pd.DataFrame, file_dir: Path, filename: str, file_format: str = 'parquet'):
+    def save_dataframe_file(
+        self,
+        df: pd.DataFrame,
+        file_dir: Path,
+        filename: str,
+        file_format: str = "parquet",
+    ):
         file_dir.mkdir(parents=True, exist_ok=True)
-        if file_format == 'csv':
+        if file_format == "csv":
             df.to_csv(file_dir / filename)
-        elif file_format == 'parquet':
-            df.to_parquet(file_dir / filename, engine='pyarrow')
+        elif file_format == "parquet":
+            df.to_parquet(file_dir / filename, engine="pyarrow")
 
     def events_metadata_file_location(self, dir_name) -> tuple:
-        return self.result_path / dir_name, 'events.parquet'
-
+        return self.result_path / dir_name, "events.parquet"
