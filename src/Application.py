@@ -5,6 +5,7 @@ from pathlib import Path
 import pandas as pd
 
 from src.config.AppConfig import AppConfig
+from src.datamodel.DataColumns import DataDictionaryColumns as dd_cols
 from src.datamodel.ExperimentConfig import ExperimentConfig
 from src.db.DatabaseManager import DatabaseManager
 from src.repository.CodeDescriptionRepository import CodeDescriptionRepository
@@ -44,9 +45,7 @@ def create_db(
     data_path = ConvertDataModel().execute(archive, "tnx")
 
     if db_type == "FILE":
-        for csv_file in Path(data_path).glob("*.csv"):
-            pd.read_csv(csv_file).to_parquet(csv_file.with_suffix(".parquet"))
-            csv_file.unlink()
+        convert_csv_to_parquet(data_path, drop_csv)
         logger.info(f"The file database was created in {data_path}")
         logger.debug("======Finish======")
         return
@@ -132,6 +131,48 @@ def validate_study(study_list: list):
             logger.info(f"Config {config_file_name} is correct")
 
     logger.debug("======Study Validation is Finished======")
+
+
+def convert_csv_to_parquet(data_path: str, drop_csv: bool):
+    """
+    Converts the common data model csv files to parquet using the data dictionary column types.
+    The csv files are removed only after all of them are converted, so a failure in the middle
+    leaves the source data in place.
+    :param data_path: path to the common data model csv files
+    :param drop_csv: if True, the csv files are deleted after the conversion
+    :return: none
+    """
+    dd_parser = ParseDataDictionary()
+    csv_files = sorted(Path(data_path).glob("*.csv"))
+    for csv_file in csv_files:
+        logger.debug(f"Convert {csv_file.name} to parquet")
+        dtypes, date_columns = dd_parser.get_read_options(file_name=csv_file.name)
+        df = read_data_model_csv(csv_file, dtypes, date_columns)
+        df.to_parquet(csv_file.with_suffix(".parquet"))
+
+    if drop_csv:
+        logger.debug(f"Delete data model csv files in {data_path}")
+        for csv_file in csv_files:
+            csv_file.unlink()
+
+
+def read_data_model_csv(
+    csv_file: Path, dtypes: dict, date_columns: list
+) -> pd.DataFrame:
+    try:
+        return pd.read_csv(csv_file, dtype=dtypes, parse_dates=date_columns)
+    except ValueError as e:
+        # a column declared as DECIMAL holds non numeric text: keep the original text
+        # instead of failing the whole conversion
+        logger.error(
+            f"{csv_file.name}: {e}. Numeric columns of this file are read as text"
+        )
+        numeric_dtype = dd_cols.pandas_dtypes[dd_cols.type_decimal]
+        text_dtype = dd_cols.pandas_dtypes[dd_cols.type_varchar]
+        dtypes = {
+            c: (text_dtype if t == numeric_dtype else t) for c, t in dtypes.items()
+        }
+        return pd.read_csv(csv_file, dtype=dtypes, parse_dates=date_columns)
 
 
 def download_dataset(url: str, archive: str):

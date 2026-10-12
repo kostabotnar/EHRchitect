@@ -10,6 +10,7 @@ from src.datamodel.DataColumns import (
     CommonColumns as cc_cols,
     TnxMapColumns as map_cols,
 )
+from src.usecase.ParseDataDictionary import ParseDataDictionary
 from src.util.ConcurrentUtil import ConcurrentUtil
 from src.util.FileProvider import FileProvider
 
@@ -20,7 +21,7 @@ class ConvertDataModel:
     def __init__(self):
         self.logger = logging.getLogger(self.__class__.__name__)
         self.fp = FileProvider()
-        self.datadictionary = pd.read_csv(self.fp.data_dictionary_file)
+        self.dd_parser = ParseDataDictionary()
         self.conversion_map = None
 
     def execute(self, data_path: str, source_type: str):
@@ -84,7 +85,21 @@ class ConvertDataModel:
             )
         }
 
-        df = pd.read_csv(f"{src_path}/{file_name}", usecols=selected_columns)
+        table_name = table_map[map_cols.table].tolist()[0]
+        cm_dtypes, date_columns = self.dd_parser.get_read_options(table_name=table_name)
+        # dtypes are applied before the renaming, so they are keyed by the TNX column name.
+        # Only text columns are forced: date columns are converted below and numeric ones
+        # are left to pandas, because the source may hold non numeric values.
+        text_dtype = dd_cols.pandas_dtypes[dd_cols.type_varchar]
+        src_dtypes = {
+            tnx_c: text_dtype
+            for tnx_c, cm_c in columns_map.items()
+            if cm_dtypes.get(cm_c) == text_dtype
+        }
+
+        df = pd.read_csv(
+            f"{src_path}/{file_name}", usecols=selected_columns, dtype=src_dtypes
+        )
         # rename columns
         df = df.rename(columns=columns_map)
         # Drop duplicates
@@ -100,8 +115,6 @@ class ConvertDataModel:
                 + pd.offsets.MonthEnd()
             )
         else:
-            table_name = table_map[map_cols.table].tolist()[0]
-            date_columns = [c for c in self.get_tnx_table_date_columns(table_name)]
             for c in date_columns:
                 df[c] = pd.to_datetime(df[c], format="%Y%m%d")
         # Save to a new CSV file
@@ -110,13 +123,6 @@ class ConvertDataModel:
             os.mkdir(dest_path)
         self.logger.debug(f"Saving file {dest_path}/{out_file_name}")
         df.to_csv(f"{dest_path}/{out_file_name}", index=False)
-
-    def get_tnx_table_date_columns(self, table_name: str) -> list:
-        selection = (self.datadictionary[dd_cols.table_name] == table_name) & (
-            (self.datadictionary[dd_cols.data_type] == "DATETIME")
-            | (self.datadictionary[dd_cols.data_type] == "DATE")
-        )
-        return self.datadictionary.loc[selection, dd_cols.column_name].unique().tolist()
 
     def extract_files_from_zip_async(self, src_path: str, tnx_files: list) -> str:
         extraction_path = src_path[:-4]

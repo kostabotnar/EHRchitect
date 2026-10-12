@@ -22,6 +22,15 @@ class DataDictionaryColumns:
     val_yes = "Yes"
     val_no = "No"
 
+    type_varchar = "VARCHAR"
+    type_decimal = "DECIMAL"
+    type_datetime = "DATETIME"
+    type_date = "DATE"
+
+    # DATE and DATETIME are not listed here, they are handled by the read_csv parse_dates option
+    pandas_dtypes = {type_varchar: "string", type_decimal: "float64"}
+    date_data_types = (type_datetime, type_date)
+
 
 class CommonColumns:
     patient_id = "patient_id"
